@@ -23,6 +23,21 @@ python -m pip check
 The requirements file records the Windows development environment.
 Cross-platform dependency locking is pending.
 
+## Local configuration
+
+Create the local configuration file once:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edit `.env` for local settings. It is ignored by Git.
+`.env.example` is the tracked configuration template.
+
+Environment variables override values in `.env`.
+Run the backend from the repository root so it finds `.env`.
+Production configuration rejects debug mode.
+
 ## Start the backend
 
 ```powershell

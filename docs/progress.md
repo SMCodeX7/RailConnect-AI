@@ -39,4 +39,4 @@
 
 ## Next task
 
-Create core/config.py and test typed application settings.
+Add request IDs and consistent API error responses.
