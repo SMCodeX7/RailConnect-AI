@@ -1,0 +1,2 @@
+class InvalidStationSelectionError(ValueError):
+    pass

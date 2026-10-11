@@ -36,6 +36,10 @@
 - Added five frontend interaction tests.
 - Added structured JSON request logs with request IDs, status codes, and duration.
 - Added logging tests for response correlation, failures, omitted request values, and handler reuse.
+- Added the direct journey search API with query validation and pagination.
+- Tested operating days, schedule validity, reverse journeys, and overnight boarding.
+- Added journey HTTP response and error tests.
+- Shared the timetable database fixture through conftest.py.
 
 ## Database and station data
 
@@ -62,7 +66,7 @@
 - pip check: passed.
 - Ruff lint and formatting: passed for the checked files.
 - mypy: passed for 24 source files.
-- pytest: 62 passed, with no skipped database tests.
+- pytest: 94 passed, with no skipped database tests.
 - Manually verified station searches and pagination against PostgreSQL.
 - Database connection check: passed.
 - Alembic migration and schema check: passed.
@@ -83,4 +87,4 @@
 
 ## Next task
 
-Implement and test the direct journey search API.
+Connect the frontend journey form and display search results.
