@@ -3,12 +3,10 @@
 ## Current checkpoint
 
 - Updated: 2026-10-11
-- Phase: v0.1 foundation, complete
-- Branch: main
-- Foundation merged through pull request #1.
-- Merge commit: a69e28b.
-- Backend and frontend CI passed on the merged commit.
-- Clean-checkout verification passed.
+- Phase: journey search, in progress
+- Branch: feat/journey-search
+- Foundation completed and merged into main.
+- Timetable models, migration, validation, and repeatable seeding validated.
 
 ## Completed
 
@@ -38,6 +36,14 @@
 - Added five frontend interaction tests.
 - Added structured JSON request logs with request IDs, status codes, and duration.
 - Added logging tests for response correlation, failures, omitted request values, and handler reuse.
+- Added the direct journey search API with query validation and pagination.
+- Tested operating days, schedule validity, reverse journeys, and overnight boarding.
+- Added journey HTTP response and error tests.
+- Shared the timetable database fixture through conftest.py.
+- Connected the frontend to direct journey search.
+- Added travel-date selection, journey results, and pagination.
+- Added journey loading, retry, and stale-request cancellation.
+- Clear previous results when search inputs change.
 
 ## Database and station data
 
@@ -50,12 +56,21 @@
 - Station codes beginning with DEMO_ are project identifiers.
 - Repeated seeding inserts no duplicates: 0 inserted, 30 already present.
 
+## Timetable data
+
+- Migration cbaf28463dbe adds train_services and service_stops.
+- Validated 12 fictional services with 42 ordered stops.
+- Included northern, eastern, central, southern, and hill-country examples.
+- Supported daily, weekday, weekend, reverse, and overnight schedules.
+- Added timetable validation and PostgreSQL seeding tests.
+- Verified repeatability and rollback on conflicting data.
+
 ## Validation
 
 - pip check: passed.
 - Ruff lint and formatting: passed for the checked files.
 - mypy: passed for 24 source files.
-- pytest: 41 passed.
+- pytest: 94 passed, with no skipped database tests.
 - Manually verified station searches and pagination against PostgreSQL.
 - Database connection check: passed.
 - Alembic migration and schema check: passed.
@@ -63,7 +78,8 @@
 - Frontend ESLint: passed.
 - Frontend TypeScript checking and production build: passed.
 - Manually verified station loading and selected-journey display.
-- Frontend interaction tests: 5 passed.
+- Frontend interaction and API tests: 18 passed.
+- Manually verified direct journeys, overnight arrivals, empty results, and clearing results after input changes.
 - GitHub Actions: backend and frontend checks passed.
 - Fresh Windows clone: locked backend and frontend installations passed.
 - Fresh PostgreSQL database: migration and repeatable station seeding passed.
@@ -76,4 +92,4 @@
 
 ## Next task
 
-Design the demonstration timetable data model and implement direct journey search.
+Review journey search CI and merge the feature before starting incident reporting.

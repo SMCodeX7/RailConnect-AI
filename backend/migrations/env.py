@@ -1,10 +1,10 @@
 from alembic import context
 
 from railconnect.core.config import Settings
+from railconnect.db.models import Base
 from railconnect.db.session import create_db_engine
-from railconnect.modules.stations.models import Station
 
-target_metadata = Station.metadata
+target_metadata = Base.metadata
 
 
 def run_migrations() -> None:
