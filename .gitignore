@@ -218,3 +218,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Frontend dependencies and generated output
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Local environment files; keep shareable examples
+.env.*
+!.env.example
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Local tooling
+.vscode/
+.DS_Store
+Thumbs.db

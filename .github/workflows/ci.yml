@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      RAILCONNECT_ENVIRONMENT: test
+      RAILCONNECT_DEBUG: "false"
+      RAILCONNECT_DATABASE_URL: postgresql+psycopg://railconnect:railconnect_ci@127.0.0.1:5432/railconnect
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: railconnect
+          POSTGRES_DB: railconnect
+          POSTGRES_PASSWORD: railconnect_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U railconnect -d railconnect"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.0"
+          python-version: "3.13.7"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install locked dependencies
+        run: uv sync --locked --extra dev
+
+      - name: Check dependency compatibility
+        run: uv pip check --python .venv/bin/python
+
+      - name: Check lint
+        run: uv run --locked --extra dev ruff check src tests migrations ../scripts
+
+      - name: Check formatting
+        run: uv run --locked --extra dev ruff format --check src tests migrations ../scripts
+
+      - name: Check types
+        run: uv run --locked --extra dev mypy --config-file pyproject.toml src/railconnect
+
+      - name: Apply database migrations
+        run: uv run --locked --extra dev alembic -c alembic.ini upgrade head
+
+      - name: Check database schema
+        run: uv run --locked --extra dev alembic -c alembic.ini check
+
+      - name: Seed demonstration stations twice
+        run: |
+          uv run --locked --extra dev python ../scripts/seed_stations.py
+          uv run --locked --extra dev python ../scripts/seed_stations.py
+
+      - name: Run backend tests
+        run: uv run --locked --extra dev pytest -c pyproject.toml
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22.20.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check lint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run frontend tests
+        run: npm test
