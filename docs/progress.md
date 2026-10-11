@@ -61,12 +61,16 @@
 - Frontend TypeScript checking and production build: passed.
 - Manually verified station loading and selected-journey display.
 - Frontend interaction tests: 5 passed.
+- GitHub Actions: backend and frontend checks passed.
+- Fresh Windows clone: locked backend and frontend installations passed.
+- Fresh PostgreSQL database: migration and repeatable station seeding passed.
+- Fresh clone tests: 41 backend and 5 frontend tests passed.
+- Fresh clone working tree remained clean.
 
 ## Remaining foundation work
 
-- Cross-platform dependency lock and CI.
-- Clean-checkout setup verification.
+- None.
 
 ## Next task
 
-Create a cross-platform backend dependency lock and configure CI.
+Design the demonstration timetable data model and implement direct journey search.
