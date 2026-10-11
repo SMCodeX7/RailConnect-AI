@@ -5,7 +5,7 @@
 - Updated: 2026-10-11
 - Phase: v0.1 foundation, in progress
 - Branch: chore/project-foundation
-- Frontend station selectors implemented and validated.
+- Frontend interaction tests and structured backend logging implemented and validated.
 
 ## Completed
 
@@ -31,6 +31,10 @@
 - Separated API requests, station types, loading state, and UI components.
 - Added departure and arrival selectors with loading, error, and retry states.
 - Prevented selecting the same departure and arrival station.
+- Configured Vitest and React Testing Library.
+- Added five frontend interaction tests.
+- Added structured JSON request logs with request IDs, status codes, and duration.
+- Added logging tests for response correlation, failures, omitted request values, and handler reuse.
 
 ## Database and station data
 
@@ -47,8 +51,8 @@
 
 - pip check: passed.
 - Ruff lint and formatting: passed for the checked files.
-- mypy: passed for 22 source files.
-- pytest: 35 passed.
+- mypy: passed for 24 source files.
+- pytest: 41 passed.
 - Manually verified station searches and pagination against PostgreSQL.
 - Database connection check: passed.
 - Alembic migration and schema check: passed.
@@ -56,14 +60,13 @@
 - Frontend ESLint: passed.
 - Frontend TypeScript checking and production build: passed.
 - Manually verified station loading and selected-journey display.
+- Frontend interaction tests: 5 passed.
 
 ## Remaining foundation work
 
-- Frontend interaction tests.
-- Structured logging.
 - Cross-platform dependency lock and CI.
 - Clean-checkout setup verification.
 
 ## Next task
 
-Add frontend interaction tests.
+Create a cross-platform backend dependency lock and configure CI.
