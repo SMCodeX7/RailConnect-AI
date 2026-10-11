@@ -1,0 +1,135 @@
+{
+  "kind": "demonstration",
+  "timezone": "Asia/Colombo",
+  "source_ref": "demo-timetable-v1",
+  "valid_from": "2026-01-01",
+  "valid_until": "2028-12-31",
+  "services": [
+    {
+      "code": "DEMO_NORTH_OUT",
+      "name": "Demo Northern Outbound",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_FORT", "departure_minutes": 360},
+        {"station_code": "DEMO_ANURADHAPURA", "arrival_minutes": 600, "departure_minutes": 605},
+        {"station_code": "DEMO_VAVUNIYA", "arrival_minutes": 690, "departure_minutes": 695},
+        {"station_code": "DEMO_JAFFNA", "arrival_minutes": 900}
+      ]
+    },
+    {
+      "code": "DEMO_NORTH_RETURN",
+      "name": "Demo Northern Return",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_JAFFNA", "departure_minutes": 420},
+        {"station_code": "DEMO_VAVUNIYA", "arrival_minutes": 620, "departure_minutes": 625},
+        {"station_code": "DEMO_ANURADHAPURA", "arrival_minutes": 700, "departure_minutes": 705},
+        {"station_code": "DEMO_FORT", "arrival_minutes": 960}
+      ]
+    },
+    {
+      "code": "DEMO_TRINCO_NIGHT_OUT",
+      "name": "Demo Trincomalee Overnight Outbound",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_FORT", "departure_minutes": 1260},
+        {"station_code": "DEMO_GALOYA", "arrival_minutes": 1660, "departure_minutes": 1665},
+        {"station_code": "DEMO_TRINCOMALEE", "arrival_minutes": 1800}
+      ]
+    },
+    {
+      "code": "DEMO_TRINCO_NIGHT_RETURN",
+      "name": "Demo Trincomalee Overnight Return",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_TRINCOMALEE", "departure_minutes": 1200},
+        {"station_code": "DEMO_GALOYA", "arrival_minutes": 1330, "departure_minutes": 1335},
+        {"station_code": "DEMO_FORT", "arrival_minutes": 1770}
+      ]
+    },
+    {
+      "code": "DEMO_EAST_OUT",
+      "name": "Demo Batticaloa Weekday Outbound",
+      "operating_days": 31,
+      "stops": [
+        {"station_code": "DEMO_FORT", "departure_minutes": 420},
+        {"station_code": "DEMO_POLONNARUWA", "arrival_minutes": 780, "departure_minutes": 785},
+        {"station_code": "DEMO_BATTICALOA", "arrival_minutes": 960}
+      ]
+    },
+    {
+      "code": "DEMO_EAST_RETURN",
+      "name": "Demo Batticaloa Weekday Return",
+      "operating_days": 31,
+      "stops": [
+        {"station_code": "DEMO_BATTICALOA", "departure_minutes": 480},
+        {"station_code": "DEMO_POLONNARUWA", "arrival_minutes": 650, "departure_minutes": 655},
+        {"station_code": "DEMO_FORT", "arrival_minutes": 1020}
+      ]
+    },
+    {
+      "code": "DEMO_KANDY_OUT",
+      "name": "Demo Kandy Outbound",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_FORT", "departure_minutes": 480},
+        {"station_code": "DEMO_PERADENIYA", "arrival_minutes": 650, "departure_minutes": 655},
+        {"station_code": "DEMO_KANDY", "arrival_minutes": 680}
+      ]
+    },
+    {
+      "code": "DEMO_KANDY_RETURN",
+      "name": "Demo Kandy Return",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_KANDY", "departure_minutes": 900},
+        {"station_code": "DEMO_PERADENIYA", "arrival_minutes": 925, "departure_minutes": 930},
+        {"station_code": "DEMO_FORT", "arrival_minutes": 1100}
+      ]
+    },
+    {
+      "code": "DEMO_SOUTH_OUT",
+      "name": "Demo Southern Outbound",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_FORT", "departure_minutes": 390},
+        {"station_code": "DEMO_GALLE", "arrival_minutes": 570, "departure_minutes": 575},
+        {"station_code": "DEMO_MATARA", "arrival_minutes": 635, "departure_minutes": 640},
+        {"station_code": "DEMO_BELIATTA", "arrival_minutes": 680}
+      ]
+    },
+    {
+      "code": "DEMO_SOUTH_RETURN",
+      "name": "Demo Southern Return",
+      "operating_days": 127,
+      "stops": [
+        {"station_code": "DEMO_BELIATTA", "departure_minutes": 780},
+        {"station_code": "DEMO_MATARA", "arrival_minutes": 820, "departure_minutes": 825},
+        {"station_code": "DEMO_GALLE", "arrival_minutes": 885, "departure_minutes": 890},
+        {"station_code": "DEMO_FORT", "arrival_minutes": 1070}
+      ]
+    },
+    {
+      "code": "DEMO_HILL_OUT",
+      "name": "Demo Hill Country Weekend Outbound",
+      "operating_days": 96,
+      "stops": [
+        {"station_code": "DEMO_FORT", "departure_minutes": 360},
+        {"station_code": "DEMO_NANUOYA", "arrival_minutes": 930, "departure_minutes": 935},
+        {"station_code": "DEMO_ELLA", "arrival_minutes": 1110, "departure_minutes": 1115},
+        {"station_code": "DEMO_BADULLA", "arrival_minutes": 1170}
+      ]
+    },
+    {
+      "code": "DEMO_HILL_RETURN",
+      "name": "Demo Hill Country Weekend Return",
+      "operating_days": 96,
+      "stops": [
+        {"station_code": "DEMO_BADULLA", "departure_minutes": 420},
+        {"station_code": "DEMO_ELLA", "arrival_minutes": 475, "departure_minutes": 480},
+        {"station_code": "DEMO_NANUOYA", "arrival_minutes": 660, "departure_minutes": 665},
+        {"station_code": "DEMO_FORT", "arrival_minutes": 1260}
+      ]
+    }
+  ]
+}

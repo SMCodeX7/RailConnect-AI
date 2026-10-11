@@ -106,10 +106,19 @@ python -m alembic -c backend/alembic.ini current
 python -m alembic -c backend/alembic.ini check
 python scripts/seed_stations.py
 python scripts/seed_stations.py
+python scripts/seed_timetable.py
+python scripts/seed_timetable.py
 ```
 
 On a fresh database, the first seed inserts 30 stations.
 The second reports 0 inserted and 30 already present.
+
+The first timetable seed inserts 12 demonstration services and 42 stops.
+Repeated seeding inserts nothing and verifies existing records.
+Conflicting data causes an error and rolls back the seed transaction.
+
+Timetable schedules are fictional, use Asia/Colombo, and include daily,
+weekday, weekend, reverse-direction, and overnight examples.
 
 These are selected demonstration stations, not the complete railway network.
 Codes beginning with `DEMO_` are project identifiers.

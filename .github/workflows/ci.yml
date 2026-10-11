@@ -80,6 +80,11 @@ jobs:
           uv run --locked --extra dev python ../scripts/seed_stations.py
           uv run --locked --extra dev python ../scripts/seed_stations.py
 
+      - name: Seed demonstration timetable twice
+        run: |
+          uv run --locked --extra dev python ../scripts/seed_timetable.py
+          uv run --locked --extra dev python ../scripts/seed_timetable.py
+
       - name: Run backend tests
         run: uv run --locked --extra dev pytest -c pyproject.toml
 
