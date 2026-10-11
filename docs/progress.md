@@ -5,7 +5,7 @@
 - Updated: 2026-10-11
 - Phase: v0.1 foundation, in progress
 - Branch: chore/project-foundation
-- Station API implementation validated; commit pending.
+- Database readiness and repository tests validated; commit pending.
 
 ## Completed
 
@@ -23,6 +23,9 @@
 - Added application-managed database sessions and shutdown cleanup.
 - Added the versioned station listing and search API.
 - Added station API response, query-validation, and missing-database tests.
+- Added a database readiness endpoint.
+- Added readiness failure-response tests.
+- Added PostgreSQL repository tests for active stations, search, pagination, and literal wildcard handling.
 
 ## Database and station data
 
@@ -39,8 +42,8 @@
 
 - pip check: passed.
 - Ruff lint and formatting: passed for the checked files.
-- mypy: passed for 16 source files.
-- pytest: 24 passed.
+- mypy: passed for 22 source files.
+- pytest: 35 passed.
 - Manually verified station searches and pagination against PostgreSQL.
 - Database connection check: passed.
 - Alembic migration and schema check: passed.
@@ -48,7 +51,6 @@
 
 ## Remaining foundation work
 
-- Database readiness endpoint.
 - Structured logging.
 - Frontend setup and connected station selectors.
 - Cross-platform dependency lock and CI.
@@ -56,4 +58,4 @@
 
 ## Next task
 
-Add automated station repository tests and a database readiness endpoint.
+Set up the React and TypeScript frontend and connect station selectors.
