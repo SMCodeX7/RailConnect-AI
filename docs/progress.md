@@ -18,7 +18,8 @@
 - Verified liveness and interactive API documentation.
 - Added a passing liveness test.
 - Corrected import classification and test-client dependencies.
-- Server-generated request IDs and response-header tests
+- Server-generated request IDs and response-header tests.
+- Consistent HTTP, validation, and unexpected-error responses with matching request IDs.
 
 ## Validation
 
@@ -26,7 +27,7 @@
 - Ruff lint: passed for source and tests.
 - Ruff formatting: passed for source and tests.
 - mypy: passed for source before the latest dependency update.
-- pytest: 9 passed, no warnings.
+- pytest: 14 passed, no warnings.
 
 ## Remaining foundation work
 
@@ -40,4 +41,4 @@
 
 ## Next task
 
-- Add consistent API error responses linked to request IDs.
+- Configure PostgreSQL and database migrations.

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from railconnect.api.health import router as health_router
 from railconnect.core.config import Settings
+from railconnect.core.errors import register_error_handlers
 from railconnect.core.request_id import RequestIdMiddleware
 
 
@@ -17,5 +18,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         debug=config.debug,
     )
     app.add_middleware(RequestIdMiddleware)
+    register_error_handlers(app)
     app.include_router(health_router)
     return app
