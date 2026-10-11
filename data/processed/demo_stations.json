@@ -1,0 +1,40 @@
+{
+  "kind": "demonstration",
+  "source_ref": "demo-stations-v1",
+  "stations": [
+    {"code": "DEMO_FORT", "name": "Colombo Fort"},
+    {"code": "DEMO_MARADANA", "name": "Maradana"},
+    {"code": "DEMO_RAGAMA", "name": "Ragama"},
+    {"code": "DEMO_GAMPAHA", "name": "Gampaha"},
+    {"code": "DEMO_VEYANGODA", "name": "Veyangoda"},
+    {"code": "DEMO_POLGAHAWELA", "name": "Polgahawela Junction"},
+    {"code": "DEMO_RAMBUKKANA", "name": "Rambukkana"},
+    {"code": "DEMO_KADUGANNAWA", "name": "Kadugannawa"},
+    {"code": "DEMO_PERADENIYA", "name": "Peradeniya Junction"},
+    {"code": "DEMO_KANDY", "name": "Kandy"},
+
+    {"code": "DEMO_KURUNEGALA", "name": "Kurunegala"},
+    {"code": "DEMO_MAHO", "name": "Maho"},
+    {"code": "DEMO_ANURADHAPURA", "name": "Anuradhapura"},
+    {"code": "DEMO_MEDAWACHCHIYA", "name": "Medawachchiya"},
+    {"code": "DEMO_VAVUNIYA", "name": "Vavuniya"},
+    {"code": "DEMO_KILINOCHCHI", "name": "Kilinochchi"},
+    {"code": "DEMO_JAFFNA", "name": "Jaffna"},
+    {"code": "DEMO_KANKESANTHURAI", "name": "Kankesanthurai"},
+
+    {"code": "DEMO_GALOYA", "name": "Gal Oya Junction"},
+    {"code": "DEMO_POLONNARUWA", "name": "Polonnaruwa"},
+    {"code": "DEMO_VALAICHCHENAI", "name": "Valaichchenai"},
+    {"code": "DEMO_BATTICALOA", "name": "Batticaloa"},
+    {"code": "DEMO_TRINCOMALEE", "name": "Trincomalee"},
+
+    {"code": "DEMO_HATTON", "name": "Hatton"},
+    {"code": "DEMO_NANUOYA", "name": "Nanu Oya"},
+    {"code": "DEMO_ELLA", "name": "Ella"},
+    {"code": "DEMO_BADULLA", "name": "Badulla"},
+
+    {"code": "DEMO_GALLE", "name": "Galle"},
+    {"code": "DEMO_MATARA", "name": "Matara"},
+    {"code": "DEMO_BELIATTA", "name": "Beliatta"}
+  ]
+}

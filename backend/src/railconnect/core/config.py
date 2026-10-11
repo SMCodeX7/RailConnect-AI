@@ -1,6 +1,6 @@
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="RailConnect AI", min_length=1, max_length=100)
     environment: Literal["development", "test", "production"] = "development"
     debug: bool = False
+    database_url: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_debug_mode(self) -> Self:
