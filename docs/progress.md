@@ -40,6 +40,10 @@
 - Tested operating days, schedule validity, reverse journeys, and overnight boarding.
 - Added journey HTTP response and error tests.
 - Shared the timetable database fixture through conftest.py.
+- Connected the frontend to direct journey search.
+- Added travel-date selection, journey results, and pagination.
+- Added journey loading, retry, and stale-request cancellation.
+- Clear previous results when search inputs change.
 
 ## Database and station data
 
@@ -74,7 +78,8 @@
 - Frontend ESLint: passed.
 - Frontend TypeScript checking and production build: passed.
 - Manually verified station loading and selected-journey display.
-- Frontend interaction tests: 5 passed.
+- Frontend interaction and API tests: 18 passed.
+- Manually verified direct journeys, overnight arrivals, empty results, and clearing results after input changes.
 - GitHub Actions: backend and frontend checks passed.
 - Fresh Windows clone: locked backend and frontend installations passed.
 - Fresh PostgreSQL database: migration and repeatable station seeding passed.
@@ -87,4 +92,4 @@
 
 ## Next task
 
-Connect the frontend journey form and display search results.
+Review journey search CI and merge the feature before starting incident reporting.
