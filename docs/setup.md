@@ -1,64 +1,202 @@
 # Development setup
 
-## Current environment
+## Prerequisites
 
-- Windows with PowerShell
-- Python 3.13.7
+- Git
+- Python 3.13
 - Node.js 22.20.0
-- npm 11.12.1
+- Docker Desktop with Linux containers
+- PowerShell on Windows
 
-Run all commands from the repository root.
+Run commands from the repository root unless another directory is specified.
+
+## Install uv
+
+Install the tool separately from the project's Python environment:
+
+```powershell
+python -m venv "$env:LOCALAPPDATA\RailConnectTools\uv"
+& "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\python.exe" -m pip install "uv==0.13.0"
+& "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" --version
+```
 
 ## Backend installation
 
+For a fresh checkout, create the named environment:
+
 ```powershell
 python -m venv --prompt RailConnect-AI backend\.venv
-.\backend\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r backend/requirements-dev.txt
-python -m pip install --no-deps -e ./backend
-python -m pip check
 ```
 
-The requirements file records the Windows development environment.
-Cross-platform dependency locking is pending.
+Install dependencies from the committed lockfile:
+
+```powershell
+& "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" sync --project backend --extra dev --locked
+.\backend\.venv\Scripts\Activate.ps1
+```
+
+The sync command installs the backend package in editable mode.
+Stop the backend server before syncing dependencies on Windows.
+
+Select `backend\.venv\Scripts\python.exe` through
+`Python: Select Interpreter` in VS Code.
 
 ## Local configuration
 
-Create the local configuration file once:
+For a fresh checkout, create the local configuration file once:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Edit `.env` for local settings. It is ignored by Git.
-`.env.example` is the tracked configuration template.
+Do not overwrite an existing configured `.env`.
 
-Environment variables override values in `.env`.
-Run the backend from the repository root so it finds `.env`.
-Production configuration rejects debug mode.
+Generate a local database password:
+
+```powershell
+python -c "import secrets; print(secrets.token_hex(24))"
+```
+
+Open `.env` and assign that generated value to `POSTGRES_PASSWORD`.
+
+Keep this database URL:
+
+```dotenv
+RAILCONNECT_DATABASE_URL=postgresql+psycopg://railconnect:${POSTGRES_PASSWORD}@127.0.0.1:5433/railconnect
+```
+
+Keep development settings:
+
+```dotenv
+RAILCONNECT_ENVIRONMENT=development
+RAILCONNECT_DEBUG=false
+```
+
+The `.env` file is ignored by Git.
+Environment variables override values from `.env`.
+Run backend commands from the repository root so configuration is found.
+
+## Start PostgreSQL
+
+Open Docker Desktop and wait for its engine to start.
+
+```powershell
+docker compose --env-file .env -f infra/compose.yaml up -d db
+docker compose --env-file .env -f infra/compose.yaml ps
+```
+
+Wait until the database container reports healthy.
+
+Verify the application connection:
+
+```powershell
+python scripts/check_database.py
+```
+
+Expected database and user: `railconnect`.
+
+The local database listens on `127.0.0.1:5433`.
+Its data persists in a Docker volume.
+
+## Migrations and demonstration data
+
+```powershell
+python -m alembic -c backend/alembic.ini upgrade head
+python -m alembic -c backend/alembic.ini current
+python -m alembic -c backend/alembic.ini check
+python scripts/seed_stations.py
+python scripts/seed_stations.py
+```
+
+On a fresh database, the first seed inserts 30 stations.
+The second reports 0 inserted and 30 already present.
+
+These are selected demonstration stations, not the complete railway network.
+Codes beginning with `DEMO_` are project identifiers.
+The data does not provide live timetables or service updates.
 
 ## Start the backend
+
+In a dedicated terminal with the backend environment active:
 
 ```powershell
 python -m uvicorn railconnect.app:create_app --factory --reload --reload-dir backend/src --host 127.0.0.1 --port 8000
 ```
 
-- Liveness: http://127.0.0.1:8000/health/live
-- API documentation: http://127.0.0.1:8000/docs
+Keep that terminal running.
 
+- Liveness: http://127.0.0.1:8000/health/live
+- Database readiness: http://127.0.0.1:8000/health/ready
+- API documentation: http://127.0.0.1:8000/docs
+- Stations: http://127.0.0.1:8000/api/v1/stations
+
+Request logs appear as JSON in the backend terminal.
 Stop the server with Ctrl+C.
 
-## Development checks
+## Frontend installation and startup
+
+In another terminal:
 
 ```powershell
-python -m ruff format --config backend/pyproject.toml backend/src backend/tests --check
-python -m ruff check --config backend/pyproject.toml backend/src backend/tests
+Set-Location frontend
+npm ci
+npm run dev
+```
+
+Open http://127.0.0.1:5173.
+
+Vite forwards `/api` requests to the local backend during development.
+The backend must be running to load stations.
+Deployment requires its own API routing configuration.
+
+## Backend checks
+
+From the repository root, with the backend environment active:
+
+```powershell
+& "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" pip check --python backend/.venv/Scripts/python.exe
+python -m ruff check --config backend/pyproject.toml backend/src backend/tests backend/migrations scripts
+python -m ruff format --check --config backend/pyproject.toml backend/src backend/tests backend/migrations scripts
 python -m mypy --config-file backend/pyproject.toml backend/src/railconnect
 python -m pytest -c backend/pyproject.toml
 ```
 
-## VS Code interpreter
+Run PostgreSQL and apply migrations before running repository tests.
 
-Select backend\.venv\Scripts\python.exe using
-Python: Select Interpreter in the Command Palette.
+## Frontend checks
+
+From the frontend directory:
+
+```powershell
+npm run lint
+npm run build
+npm test
+```
+
+Frontend interaction tests substitute API responses.
+They do not require the backend or PostgreSQL.
+
+## Dependency changes
+
+Declare backend dependencies in `backend/pyproject.toml`.
+After an intentional dependency change:
+
+```powershell
+& "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" lock --project backend
+& "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" sync --project backend --extra dev --locked
+```
+
+Run checks and commit the updated `pyproject.toml` and `uv.lock`.
+
+Use npm from the frontend directory to change frontend dependencies.
+Commit both `package.json` and `package-lock.json`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pushes and pull requests.
+
+Backend checks use the committed uv lockfile and a temporary PostgreSQL database.
+Frontend checks use `npm ci` and the committed npm lockfile.
+
+CI runs lint, formatting where configured, type checking, builds,
+migrations, schema checks, seeding, and automated tests.

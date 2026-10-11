@@ -3,9 +3,12 @@
 ## Current checkpoint
 
 - Updated: 2026-10-11
-- Phase: v0.1 foundation, in progress
-- Branch: chore/project-foundation
-- Frontend interaction tests and structured backend logging implemented and validated.
+- Phase: v0.1 foundation, complete
+- Branch: main
+- Foundation merged through pull request #1.
+- Merge commit: a69e28b.
+- Backend and frontend CI passed on the merged commit.
+- Clean-checkout verification passed.
 
 ## Completed
 
