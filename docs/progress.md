@@ -5,7 +5,7 @@
 - Updated: 2026-10-11
 - Phase: v0.1 foundation, in progress
 - Branch: chore/project-foundation
-- Database readiness and repository tests validated; commit pending.
+- Frontend station selectors implemented and validated.
 
 ## Completed
 
@@ -26,6 +26,11 @@
 - Added a database readiness endpoint.
 - Added readiness failure-response tests.
 - Added PostgreSQL repository tests for active stations, search, pagination, and literal wildcard handling.
+- Set up React, TypeScript, Vite, and ESLint.
+- Connected the frontend to the station API through a development proxy.
+- Separated API requests, station types, loading state, and UI components.
+- Added departure and arrival selectors with loading, error, and retry states.
+- Prevented selecting the same departure and arrival station.
 
 ## Database and station data
 
@@ -48,14 +53,17 @@
 - Database connection check: passed.
 - Alembic migration and schema check: passed.
 - Station seed repeatability check: passed.
+- Frontend ESLint: passed.
+- Frontend TypeScript checking and production build: passed.
+- Manually verified station loading and selected-journey display.
 
 ## Remaining foundation work
 
+- Frontend interaction tests.
 - Structured logging.
-- Frontend setup and connected station selectors.
 - Cross-platform dependency lock and CI.
 - Clean-checkout setup verification.
 
 ## Next task
 
-Set up the React and TypeScript frontend and connect station selectors.
+Add frontend interaction tests.
