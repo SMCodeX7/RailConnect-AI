@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,3 +17,20 @@ class DemoStationDataset(BaseModel):
     kind: Literal["demonstration"]
     source_ref: str = Field(min_length=1, max_length=200)
     stations: list[DemoStation] = Field(min_length=1, max_length=1000)
+
+
+class StationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    code: str
+    name: str
+    source_ref: str
+    is_active: bool
+
+
+class StationListResponse(BaseModel):
+    items: list[StationResponse]
+    total: int
+    limit: int
+    offset: int
