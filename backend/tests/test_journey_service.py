@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 from uuid import uuid4
 
 import pytest
@@ -330,3 +330,35 @@ def test_search_does_not_create_runs(
     assert result.total == 0
     assert result.items == []
     assert after == before
+
+
+@pytest.mark.parametrize(
+    ("arrival_date", "deadline", "expected_total"),
+    [
+        (None, time(23, 59), 0),
+        (date(2026, 10, 13), time(5, 59), 0),
+        (date(2026, 10, 13), time(6, 0), 1),
+    ],
+)
+def test_overnight_arrival_deadline(
+    overnight_timetable: tuple[Session, DemoTimetableDataset],
+    arrival_date: date | None,
+    deadline: time,
+    expected_total: int,
+) -> None:
+    session, dataset = overnight_timetable
+    initial = search(session, dataset, 0, 2, date(2026, 10, 12))
+    journey = initial.items[0]
+
+    result = search_journeys(
+        session,
+        JourneySearchQuery(
+            departure_station_id=journey.departure_station.id,
+            arrival_station_id=journey.arrival_station.id,
+            travel_date=date(2026, 10, 12),
+            arrive_before=deadline,
+            arrival_date=arrival_date,
+        ),
+    )
+
+    assert result.total == expected_total

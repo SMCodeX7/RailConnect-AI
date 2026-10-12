@@ -255,3 +255,91 @@ def test_unconfigured_database_returns_service_unavailable() -> None:
     assert response.status_code == 503
     assert response.json()["code"] == "SERVICE_UNAVAILABLE"
     assert response.json()["request_id"] == response.headers["X-Request-ID"]
+
+
+@pytest.mark.parametrize(
+    ("deadline", "expected_total"),
+    [
+        ("11:59", 0),
+        ("12:00", 1),
+        ("12:01", 1),
+    ],
+)
+def test_arrival_deadline_is_inclusive(
+    journey_client: tuple[TestClient, dict[str, str]],
+    deadline: str,
+    expected_total: int,
+) -> None:
+    client, parameters = journey_client
+
+    response = client.get(
+        "/api/v1/journeys",
+        params={**parameters, "arrive_before": deadline},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == expected_total
+
+
+def test_explicit_arrival_date_is_used(
+    journey_client: tuple[TestClient, dict[str, str]],
+) -> None:
+    client, parameters = journey_client
+
+    response = client.get(
+        "/api/v1/journeys",
+        params={
+            **parameters,
+            "arrive_before": "06:00",
+            "arrival_date": "2026-10-13",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+
+
+def test_deadline_filter_precedes_pagination(
+    journey_client: tuple[TestClient, dict[str, str]],
+) -> None:
+    client, parameters = journey_client
+
+    response = client.get(
+        "/api/v1/journeys",
+        params={
+            **parameters,
+            "arrive_before": "11:59",
+            "offset": "1",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
+    assert response.json()["items"] == []
+
+
+@pytest.mark.parametrize(
+    "extra_parameters",
+    [
+        {"arrive_before": "invalid"},
+        {"arrive_before": "25:00"},
+        {"arrive_before": "12:00:00+05:30"},
+        {"arrival_date": "2026-10-13"},
+        {"arrive_before": "12:00", "arrival_date": "invalid"},
+        {"arrive_before": "12:00", "arrival_date": "2026-10-11"},
+    ],
+)
+def test_rejects_invalid_arrival_deadline(
+    journey_client: tuple[TestClient, dict[str, str]],
+    extra_parameters: dict[str, str],
+) -> None:
+    client, parameters = journey_client
+
+    response = client.get(
+        "/api/v1/journeys",
+        params={**parameters, **extra_parameters},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+    assert response.json()["request_id"] == response.headers["X-Request-ID"]

@@ -44,6 +44,16 @@ def search_journeys(
             time.max,
             tzinfo=LOCAL_TIMEZONE,
         ).astimezone(UTC)
+
+        arrival_deadline = (
+            datetime.combine(
+                query.arrival_date or query.travel_date,
+                query.arrive_before,
+                tzinfo=LOCAL_TIMEZONE,
+            ).astimezone(UTC)
+            if query.arrive_before is not None
+            else None
+        )
     except (OverflowError, ValueError):
         return JourneyListResponse(
             departure_station_id=query.departure_station_id,
@@ -68,6 +78,9 @@ def search_journeys(
         arrival = candidate.arrival_stop.scheduled_arrival_at
 
         if departure is None or arrival is None:
+            continue
+
+        if arrival_deadline is not None and arrival > arrival_deadline:
             continue
 
         status: Literal["scheduled", "restricted"]

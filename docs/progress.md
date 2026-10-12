@@ -6,7 +6,8 @@
 - Release target: v1.0 portfolio pilot, in progress.
 - Branch: feat/journey-details.
 - Foundation and initial journey search merged into main.
-- Dated-run implementation validated locally; commit pending.
+- Dated-run implementation completed.
+- Journey details and arrival-deadline workflow validated locally; commit pending.
 - Handbook alignment documents committed separately on feat/incident-reporting.
 
 ## Completed
@@ -38,6 +39,10 @@
 - Returned explicit run status and version.
 - Added database constraints and materialization regression tests.
 - Added repeated demonstration run materialization to CI.
+- Added journey details with ordered stops and selected passenger segments.
+- Added inclusive arrival-deadline filtering with explicit overnight arrival dates.
+- Added the frontend detail panel and optional deadline controls.
+- Added detail loading, retry, cancellation and focus restoration.
 
 ## Database and demonstration data
 
@@ -62,15 +67,18 @@
 
 ## Current local validation
 
-- Ruff lint: passed across source, tests, migrations and scripts.
-- Ruff formatting: 65 files already formatted.
-- mypy: passed for 41 source files.
-- pytest: 132 passed, with no skipped tests.
+- Backend source lint and formatting: passed after detail/deadline changes.
+- mypy: passed for 43 source files.
+- Full backend suite: 167 passed, with no skipped tests.
+- Detail, journey API and journey service tests: 72 passed.
 - Migration upgrade and schema check: passed.
 - Timetable seed repeatability: passed.
 - Dated-run materialization repeatability: passed.
-- Journey tests cover run identity, overnight boarding, cancellation,
-  boarding/alighting permissions and read-only search behavior.
+- Frontend ESLint and production build: passed.
+- Frontend tests: 30 passed.
+- Manually verified ordered stops, selected segments, inclusive deadlines,
+  overnight arrival dates and clearing outdated results.
+- GitHub CI for the latest changes remains to be checked.
 
 ## Earlier validation
 
@@ -86,14 +94,8 @@ These results precede the current dated-run changes:
 - Foundation verification ran 41 backend and 5 frontend tests.
 - The verification checkout remained clean.
 
-The current dated-run changes still require GitHub CI validation.
-Updated frontend contracts and manual verification will be completed
-with the journey detail workflow.
-
 ## Remaining v1 work
 
-- Journey detail API and ordered-stop frontend.
-- Arrival-deadline filtering.
 - Source records, dataset card and import traceability.
 - Staff accounts, sessions and server-side permissions.
 - Separate passenger reports and verified incidents.
@@ -110,5 +112,6 @@ handbook for remaining documentation and repository housekeeping.
 
 ## Next task
 
-Commit the validated dated-run slice, then implement the journey
-detail API and ordered-stop view on feat/journey-details.
+Commit the validated journey detail and arrival-deadline slice.
+Then implement source provenance, dataset documentation and import
+traceability on feat/journey-details.
