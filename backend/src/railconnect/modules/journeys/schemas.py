@@ -25,6 +25,12 @@ class JourneySearchQuery(BaseModel):
 
 
 class JourneyResponse(BaseModel):
+    run_id: UUID
+    service_date: date
+    run_version: int = Field(gt=0)
+    run_status: Literal["scheduled", "restricted"]
+    departure_stop_sequence: int = Field(gt=0)
+    arrival_stop_sequence: int = Field(gt=0)
     service_id: UUID
     service_code: str
     service_name: str

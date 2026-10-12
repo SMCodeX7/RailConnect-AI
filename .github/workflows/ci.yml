@@ -85,6 +85,11 @@ jobs:
           uv run --locked --extra dev python ../scripts/seed_timetable.py
           uv run --locked --extra dev python ../scripts/seed_timetable.py
 
+      - name: Materialize demonstration runs twice
+        run: |
+          uv run --locked --extra dev python ../scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-10-18
+          uv run --locked --extra dev python ../scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-10-18
+
       - name: Run backend tests
         run: uv run --locked --extra dev pytest -c pyproject.toml
 

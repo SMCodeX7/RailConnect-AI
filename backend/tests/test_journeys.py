@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from datetime import date
 from uuid import uuid4
 
 import pytest
@@ -10,6 +11,8 @@ from railconnect.app import create_app
 from railconnect.core.config import Settings
 from railconnect.db.dependencies import get_db_session
 from railconnect.modules.stations.models import Station
+from railconnect.modules.timetable.models.train_service import TrainService
+from railconnect.modules.timetable.run_service import materialize_service_run
 from railconnect.modules.timetable.seed_schemas import DemoTimetableDataset
 from railconnect.modules.timetable.seeding import seed_timetable
 
@@ -20,6 +23,14 @@ def journey_client(
 ) -> Iterator[tuple[TestClient, dict[str, str]]]:
     session, dataset = timetable_database
     seed_timetable(session, dataset)
+
+    service_codes = [service.code for service in dataset.services]
+    services = session.scalars(
+        select(TrainService).where(TrainService.code.in_(service_codes))
+    ).all()
+
+    for service in services:
+        materialize_service_run(session, service.id, date(2026, 10, 12))
 
     stops = dataset.services[0].stops
     departure = session.scalar(select(Station).where(Station.code == stops[0].station_code))
@@ -72,6 +83,12 @@ def test_returns_journey_response(
     assert len(body["items"]) == 1
 
     journey = body["items"][0]
+    assert journey["run_id"]
+    assert journey["service_date"] == "2026-10-12"
+    assert journey["run_version"] == 1
+    assert journey["run_status"] == "scheduled"
+    assert journey["departure_stop_sequence"] == 1
+    assert journey["arrival_stop_sequence"] == 3
     assert journey["service_code"].endswith("_OUT")
     assert journey["source_ref"] == "timetable-test"
     assert journey["departure_station"]["id"] == parameters["departure_station_id"]

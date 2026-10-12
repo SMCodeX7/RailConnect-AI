@@ -56,6 +56,8 @@ def _verify_existing_service(
             stop.station_id,
             stop.arrival_minutes,
             stop.departure_minutes,
+            stop.pickup_allowed,
+            stop.dropoff_allowed,
         )
         for stop in stops
     ]
@@ -65,6 +67,8 @@ def _verify_existing_service(
             station_ids[stop.station_code],
             stop.arrival_minutes,
             stop.departure_minutes,
+            stop.pickup_allowed,
+            stop.dropoff_allowed,
         )
         for sequence, stop in enumerate(expected.stops, start=1)
     ]
@@ -110,7 +114,10 @@ def seed_timetable(
             existing_services += 1
             continue
 
-        service_id = uuid5(NAMESPACE_URL, f"railconnect:service:{expected.code}")
+        service_id = uuid5(
+            NAMESPACE_URL,
+            f"railconnect:service:{expected.code}",
+        )
         service = TrainService(
             id=service_id,
             code=expected.code,
@@ -135,6 +142,8 @@ def seed_timetable(
                 stop_sequence=sequence,
                 arrival_minutes=stop.arrival_minutes,
                 departure_minutes=stop.departure_minutes,
+                pickup_allowed=stop.pickup_allowed,
+                dropoff_allowed=stop.dropoff_allowed,
             )
             for sequence, stop in enumerate(expected.stops, start=1)
         ]

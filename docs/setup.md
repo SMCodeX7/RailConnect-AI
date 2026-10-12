@@ -108,17 +108,38 @@ python scripts/seed_stations.py
 python scripts/seed_stations.py
 python scripts/seed_timetable.py
 python scripts/seed_timetable.py
+python scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-10-18
+python scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-10-18
 ```
 
-On a fresh database, the first seed inserts 30 stations.
+On a fresh database, the first station seed inserts 30 stations.
 The second reports 0 inserted and 30 already present.
 
 The first timetable seed inserts 12 demonstration services and 42 stops.
 Repeated seeding inserts nothing and verifies existing records.
 Conflicting data causes an error and rolls back the seed transaction.
 
-Timetable schedules are fictional, use Asia/Colombo, and include daily,
-weekday, weekend, reverse-direction, and overnight examples.
+For demonstration imports, omitted boarding and alighting permissions
+follow the presence of departure and arrival times respectively.
+Explicit permission values are preserved.
+
+Dated runs must be prepared before journey search can return them.
+On a fresh run table, the example above creates 70 runs.
+Repeating it verifies 70 existing runs and inserts nothing.
+The 14 skipped service dates reflect weekday and weekend operating rules.
+
+The materialization command supports at most 31 days per invocation
+and requires a development or test environment.
+Prepare other date ranges explicitly.
+All writes in one invocation are committed together or rolled back.
+
+Run stops store scheduled timestamps in UTC.
+Search and display use the passenger's boarding date in Asia/Colombo.
+An overnight run may have started on the previous date.
+Search does not create runs.
+
+Timetable schedules are fictional and include daily, weekday, weekend,
+reverse-direction and overnight examples.
 
 These are selected demonstration stations, not the complete railway network.
 Codes beginning with `DEMO_` are project identifiers.
