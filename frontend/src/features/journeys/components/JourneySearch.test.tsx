@@ -42,6 +42,7 @@ const trincomalee: Station = {
 }
 
 const journey: Journey = {
+  source: null,
   run_id: '20000000-0000-4000-8000-000000000001',
   service_date: '2026-10-12',
   run_version: 1,

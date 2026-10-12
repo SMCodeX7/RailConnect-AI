@@ -17,7 +17,7 @@ class SeedResult:
     inserted_stops: int
 
 
-def _verify_existing_service(
+def verify_existing_service(
     session: Session,
     service: TrainService,
     expected: DemoService,
@@ -104,7 +104,7 @@ def seed_timetable(
         )
 
         if existing is not None:
-            _verify_existing_service(
+            verify_existing_service(
                 session,
                 existing,
                 expected,

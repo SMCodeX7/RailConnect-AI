@@ -1,5 +1,19 @@
 import type { Station } from '../stations/types'
 
+export interface TimetableSource {
+  id: string
+  source_ref: string
+  title: string
+  source_uri: string
+  reuse_basis: string
+  data_kind: 'demonstration' | 'observed'
+  content_sha256: string
+  effective_from: string
+  effective_until: string
+  retrieved_at: string | null
+  registered_at: string
+}
+
 export interface JourneySearchInput {
   departureStationId: string
   arrivalStationId: string
@@ -21,6 +35,7 @@ export interface Journey {
   service_code: string
   service_name: string
   source_ref: string
+  source: TimetableSource | null
   departure_station: Station
   arrival_station: Station
   departure_at: string
@@ -76,6 +91,7 @@ export interface JourneyDetailResponse {
   run_version: number
   run_status: 'scheduled' | 'cancelled' | 'restricted'
   source_ref: string
+  source: TimetableSource | null
   stops: JourneyStop[]
   selected_segment: JourneySegment | null
 }

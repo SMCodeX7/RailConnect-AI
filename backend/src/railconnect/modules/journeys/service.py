@@ -15,6 +15,8 @@ from railconnect.modules.journeys.schemas import (
     JourneySearchQuery,
 )
 from railconnect.modules.stations.schemas import StationResponse
+from railconnect.modules.timetable.source_repository import get_source_records
+from railconnect.modules.timetable.source_schemas import TimetableSourceResponse
 
 LOCAL_TIMEZONE = ZoneInfo("Asia/Colombo")
 
@@ -73,6 +75,11 @@ def search_journeys(
         departure_until,
     )
 
+    sources = get_source_records(
+        session,
+        {candidate.run.source_ref for candidate in candidates},
+    )
+
     for candidate in candidates:
         departure = candidate.departure_stop.scheduled_departure_at
         arrival = candidate.arrival_stop.scheduled_arrival_at
@@ -105,6 +112,11 @@ def search_journeys(
                 service_code=candidate.service.code,
                 service_name=candidate.service.name,
                 source_ref=candidate.run.source_ref,
+                source=(
+                    TimetableSourceResponse.model_validate(sources[candidate.run.source_ref])
+                    if candidate.run.source_ref in sources
+                    else None
+                ),
                 departure_station=departure_response,
                 arrival_station=arrival_response,
                 departure_at=departure.astimezone(LOCAL_TIMEZONE),

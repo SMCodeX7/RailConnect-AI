@@ -80,6 +80,9 @@ jobs:
           uv run --locked --extra dev python ../scripts/seed_stations.py
           uv run --locked --extra dev python ../scripts/seed_stations.py
 
+      - name: Preview demonstration timetable
+        run: uv run --locked --extra dev python ../scripts/preview_timetable.py
+
       - name: Seed demonstration timetable twice
         run: |
           uv run --locked --extra dev python ../scripts/seed_timetable.py

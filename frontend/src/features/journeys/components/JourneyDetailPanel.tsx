@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 
+import { TimetableSourceCard } from './TimetableSourceCard'
 import { formatDuration, formatJourneyTimestamp } from '../formatting'
 import type { JourneyDetailState } from '../hooks/useJourneyDetail'
 
@@ -141,6 +142,11 @@ export function JourneyDetailPanel({
               )
             })}
           </ol>
+
+          <TimetableSourceCard
+            source={detail.source}
+            sourceRef={detail.source_ref}
+          />
         </>
       )}
     </section>

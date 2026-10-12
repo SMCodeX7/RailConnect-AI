@@ -39,6 +39,7 @@ const arrival: Station = {
 }
 
 const journey: Journey = {
+  source: null,
   run_id: '20000000-0000-4000-8000-000000000001',
   service_id: '30000000-0000-4000-8000-000000000001',
   service_code: 'DEMO_NORTH_OUT',
@@ -80,6 +81,7 @@ function makeDetail(target: Journey): JourneyDetailResponse {
     run_version: target.run_version,
     run_status: target.run_status,
     source_ref: target.source_ref,
+    source: target.source,
     stops: [
       {
         stop_sequence: 1,

@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from railconnect.modules.stations.schemas import StationResponse
+from railconnect.modules.timetable.source_schemas import TimetableSourceResponse
 
 
 class JourneySearchQuery(BaseModel):
@@ -47,6 +48,7 @@ class JourneyResponse(BaseModel):
     service_code: str
     service_name: str
     source_ref: str
+    source: TimetableSourceResponse | None = None
     departure_station: StationResponse
     arrival_station: StationResponse
     departure_at: AwareDatetime
@@ -116,5 +118,6 @@ class JourneyDetailResponse(BaseModel):
     run_version: int = Field(gt=0)
     run_status: Literal["scheduled", "cancelled", "restricted"]
     source_ref: str
+    source: TimetableSourceResponse | None = None
     stops: list[JourneyStopResponse] = Field(min_length=2)
     selected_segment: JourneySegmentResponse | None

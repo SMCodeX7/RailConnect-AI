@@ -291,3 +291,24 @@ button:disabled {
   padding: 0 0.5rem;
   font-weight: 600;
 }
+
+.source-card {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+}
+
+.source-metadata {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.source-metadata dt {
+  font-weight: 600;
+}
+
+.source-metadata dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}

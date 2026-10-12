@@ -19,6 +19,8 @@ from railconnect.modules.journeys.schemas import (
     JourneyStopResponse,
 )
 from railconnect.modules.stations.schemas import StationResponse
+from railconnect.modules.timetable.source_repository import get_source_records
+from railconnect.modules.timetable.source_schemas import TimetableSourceResponse
 
 LOCAL_TIMEZONE = ZoneInfo("Asia/Colombo")
 
@@ -99,6 +101,11 @@ def get_journey_detail(
     else:
         raise JourneyDataUnavailableError("The run status is invalid.")
 
+    source = get_source_records(
+        session,
+        {journey.run.source_ref},
+    ).get(journey.run.source_ref)
+
     return JourneyDetailResponse(
         run_id=journey.run.id,
         service_id=journey.service.id,
@@ -108,6 +115,7 @@ def get_journey_detail(
         run_version=journey.run.version,
         run_status=status,
         source_ref=journey.run.source_ref,
+        source=(TimetableSourceResponse.model_validate(source) if source is not None else None),
         stops=stops,
         selected_segment=segment,
     )
