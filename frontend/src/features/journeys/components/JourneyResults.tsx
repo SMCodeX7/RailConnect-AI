@@ -1,5 +1,9 @@
+import { useRef } from 'react'
+
 import { formatDuration, formatJourneyTimestamp } from '../formatting'
+import { useJourneyDetail } from '../hooks/useJourneyDetail'
 import type { JourneyListResponse } from '../types'
+import { JourneyDetailPanel } from './JourneyDetailPanel'
 
 interface JourneyResultsProps {
   result: JourneyListResponse
@@ -10,8 +14,20 @@ export function JourneyResults({
   result,
   onPageChange,
 }: JourneyResultsProps) {
+  const details = useJourneyDetail()
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
   const hasPrevious = result.offset > 0
   const hasNext = result.offset + result.limit < result.total
+
+  function closeDetails() {
+    details.reset()
+    triggerRef.current?.focus()
+  }
+
+  function changePage(offset: number) {
+    details.reset()
+    onPageChange(offset)
+  }
 
   return (
     <section
@@ -22,15 +38,15 @@ export function JourneyResults({
 
       {result.total === 0 ? (
         <p role="status">
-          No direct services found for these stations on the selected date.
-          Try another date or station pair.
+          No direct services found for the selected stations, date and filters.
+          Try another date, station pair or arrival deadline.
         </p>
       ) : result.items.length === 0 ? (
         <p role="status">No journeys on this page. Return to the previous page.</p>
       ) : (
         <p role="status">
-          Showing {result.offset + 1}–
-          {result.offset + result.items.length} of {result.total} journeys.
+          Showing {result.offset + 1}–{result.offset + result.items.length}
+          {' '}of {result.total} journeys.
         </p>
       )}
 
@@ -44,7 +60,7 @@ export function JourneyResults({
           <ul className="journey-list">
             {result.items.map((journey) => (
               <li
-                key={`${journey.service_id}:${journey.departure_at}:${journey.arrival_at}`}
+                key={`${journey.run_id}:${journey.service_id}:${journey.departure_stop_sequence}:${journey.arrival_stop_sequence}`}
               >
                 <article className="journey-result">
                   <h4>{journey.service_name}</h4>
@@ -53,6 +69,17 @@ export function JourneyResults({
                     {journey.departure_station.name} to{' '}
                     {journey.arrival_station.name}
                   </p>
+                  <p className="muted">
+                    Service date: {journey.service_date}.
+                    {' '}Status: {journey.run_status}.
+                  </p>
+
+                  {journey.run_status === 'restricted' && (
+                    <p>
+                      Restrictions apply. Review the details before choosing
+                      this journey.
+                    </p>
+                  )}
 
                   <dl className="journey-details">
                     <div>
@@ -63,7 +90,6 @@ export function JourneyResults({
                         </time>
                       </dd>
                     </div>
-
                     <div>
                       <dt>Arrival</dt>
                       <dd>
@@ -72,12 +98,22 @@ export function JourneyResults({
                         </time>
                       </dd>
                     </div>
-
                     <div>
                       <dt>Duration</dt>
                       <dd>{formatDuration(journey.duration_minutes)}</dd>
                     </div>
                   </dl>
+
+                  <button
+                    type="button"
+                    aria-label={`View journey details for ${journey.service_name}`}
+                    onClick={(event) => {
+                      triggerRef.current = event.currentTarget
+                      void details.load(journey)
+                    }}
+                  >
+                    View journey details
+                  </button>
                 </article>
               </li>
             ))}
@@ -85,22 +121,27 @@ export function JourneyResults({
         </>
       )}
 
+      {details.status !== 'idle' && (
+        <JourneyDetailPanel
+          state={details}
+          onRetry={details.retry}
+          onClose={closeDetails}
+        />
+      )}
+
       {(hasPrevious || hasNext) && (
         <nav className="pagination" aria-label="Journey result pages">
           <button
             type="button"
             disabled={!hasPrevious}
-            onClick={() =>
-              onPageChange(Math.max(0, result.offset - result.limit))
-            }
+            onClick={() => changePage(Math.max(0, result.offset - result.limit))}
           >
             Previous
           </button>
-
           <button
             type="button"
             disabled={!hasNext}
-            onClick={() => onPageChange(result.offset + result.limit)}
+            onClick={() => changePage(result.offset + result.limit)}
           >
             Next
           </button>

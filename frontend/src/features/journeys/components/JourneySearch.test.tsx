@@ -14,6 +14,7 @@ vi.mock('../../stations/api', () => ({
 
 vi.mock('../api', () => ({
   getJourneys: vi.fn(),
+  getJourneyDetail: vi.fn(),
 }))
 
 const fort: Station = {
@@ -41,6 +42,13 @@ const trincomalee: Station = {
 }
 
 const journey: Journey = {
+  source: null,
+  run_id: '20000000-0000-4000-8000-000000000001',
+  service_date: '2026-10-12',
+  run_version: 1,
+  run_status: 'scheduled',
+  departure_stop_sequence: 1,
+  arrival_stop_sequence: 3,
   service_id: '10000000-0000-4000-8000-000000000001',
   service_code: 'DEMO_NORTH_OUT',
   service_name: 'Demo Northern Outbound',

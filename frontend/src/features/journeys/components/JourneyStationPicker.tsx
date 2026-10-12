@@ -5,6 +5,7 @@ import { StationSelect } from '../../stations/components/StationSelect'
 import { useStations } from '../../stations/hooks/useStations'
 import { getColomboToday } from '../formatting'
 import { useJourneys } from '../hooks/useJourneys'
+import { ArrivalDeadlineFields } from './ArrivalDeadlineFields'
 import { JourneyResults } from './JourneyResults'
 
 export function JourneyStationPicker() {
@@ -14,16 +15,27 @@ export function JourneyStationPicker() {
   const [departureId, setDepartureId] = useState('')
   const [arrivalId, setArrivalId] = useState('')
   const [travelDate, setTravelDate] = useState(getColomboToday)
+  const [arriveBefore, setArriveBefore] = useState('')
+  const [arrivalDate, setArrivalDate] = useState('')
 
   const departure = stations.find((station) => station.id === departureId)
   const arrival = stations.find((station) => station.id === arrivalId)
   const disabled = status !== 'ready' || stations.length === 0
+  const validTravelDate = /^\d{4}-\d{2}-\d{2}$/.test(travelDate)
+
+  const validDeadline =
+    !arriveBefore ||
+    (/^([01]\d|2[0-3]):[0-5]\d$/.test(arriveBefore) &&
+      (!arrivalDate ||
+        (/^\d{4}-\d{2}-\d{2}$/.test(arrivalDate) &&
+          arrivalDate >= travelDate)))
 
   const canSearch =
     !disabled &&
     Boolean(departure && arrival) &&
     departureId !== arrivalId &&
-    /^\d{4}-\d{2}-\d{2}$/.test(travelDate)
+    validTravelDate &&
+    validDeadline
 
   function changeDeparture(value: string) {
     setDepartureId(value)
@@ -40,6 +52,19 @@ export function JourneyStationPicker() {
     journeys.reset()
   }
 
+  function changeDeadlineTime(value: string) {
+    setArriveBefore(value)
+    if (!value) {
+      setArrivalDate('')
+    }
+    journeys.reset()
+  }
+
+  function changeDeadlineDate(value: string) {
+    setArrivalDate(value)
+    journeys.reset()
+  }
+
   function runSearch(offset = 0) {
     if (!canSearch || journeys.status === 'loading') return
 
@@ -47,6 +72,8 @@ export function JourneyStationPicker() {
       departureStationId: departureId,
       arrivalStationId: arrivalId,
       travelDate,
+      ...(arriveBefore ? { arriveBefore } : {}),
+      ...(arriveBefore && arrivalDate ? { arrivalDate } : {}),
       offset,
     })
   }
@@ -101,26 +128,33 @@ export function JourneyStationPicker() {
           />
         </div>
 
-        <div className="journey-actions">
-          <div className="field">
-            <label htmlFor="travel-date">Travel date</label>
-            <input
-              id="travel-date"
-              type="date"
-              value={travelDate}
-              disabled={disabled}
-              required
-              onChange={(event) => changeDate(event.target.value)}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={!canSearch || journeys.status === 'loading'}
-          >
-            {journeys.status === 'loading' ? 'Searching…' : 'Search journeys'}
-          </button>
+        <div className="field travel-date-field">
+          <label htmlFor="travel-date">Travel date</label>
+          <input
+            id="travel-date"
+            type="date"
+            value={travelDate}
+            disabled={disabled}
+            required
+            onChange={(event) => changeDate(event.target.value)}
+          />
         </div>
+
+        <ArrivalDeadlineFields
+          travelDate={travelDate}
+          arriveBefore={arriveBefore}
+          arrivalDate={arrivalDate}
+          disabled={disabled}
+          onTimeChange={changeDeadlineTime}
+          onDateChange={changeDeadlineDate}
+        />
+
+        <button
+          type="submit"
+          disabled={!canSearch || journeys.status === 'loading'}
+        >
+          {journeys.status === 'loading' ? 'Searching…' : 'Search journeys'}
+        </button>
       </form>
 
       {departure && arrival && (
