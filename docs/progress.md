@@ -2,15 +2,14 @@
 
 ## Current checkpoint
 
-- Updated: 2026-10-12.
+- Updated: 2026-10-13.
 - Release target: v1.0 portfolio pilot, in progress.
-- Branch: feat/journey-details.
-- Foundation and initial journey search merged into main.
-- Dated-run and journey detail/deadline slices completed.
-- Provenance and import tracking validated locally; commit pending.
-- Latest GitHub CI remains to be checked.
-- Handbook alignment documents remain committed separately on
-  feat/incident-reporting.
+- Branch: feat/staff-identity.
+- Foundation, initial journey search and journey-details work merged into main.
+- Backend staff authentication validated locally; commit pending.
+- Staff frontend, expired-record cleanup and concurrency checks remain.
+- Latest staff-identity GitHub CI remains to be checked.
+- Handbook alignment documents remain on feat/incident-reporting.
 
 ## Completed
 
@@ -59,6 +58,24 @@
 - Documented the dataset in docs/data-card.md.
 - Recorded dated-run, time-unit and provenance decisions in ADR 0004.
 - Updated setup instructions, including Linux/macOS differences.
+- Recorded the staff identity and session design in ADR 0005.
+- Added individual users, roles and role assignments.
+- Added Argon2id password hashing and verification.
+- Added interactive staff provisioning without default credentials.
+- Added hashed opaque session tokens and session-bound CSRF tokens.
+- Added absolute and idle session expiry.
+- Added session revocation and account-version invalidation.
+- Added explicit permission mappings with default denial for unknown roles.
+- Rechecked roles and permissions during session authentication.
+- Added database-backed client and account login limits.
+- Committed login attempt counters before credential rejection.
+- Verified account state again before creating a login session.
+- Added login, logout and current-session endpoints.
+- Added host-only HTTP-only cookies and production security validation.
+- Added origin checks and CSRF protection for authenticated mutations.
+- Added generic authentication errors and non-cacheable auth responses.
+- Added provisioning, session, login and authorization regression tests.
+- Provisioned a local controller account interactively.
 
 ## Database and demonstration data
 
@@ -69,8 +86,10 @@
 - Migration 8b4605b4bc60 creates service_runs and run_stops
   and adds recurring-stop permissions.
 - Migration b9c0a25509af creates source_records and timetable_imports.
-- Current migration head: b9c0a25509af.
-- Alembic reports no new upgrade operations.
+- Migration dfeb4f1c64a4 creates users, roles, user_roles,
+  sessions and login_rate_limits.
+- Current migration head: dfeb4f1c64a4.
+- Migration upgrade and Alembic schema checks passed.
 - Seeded 30 selected demonstration stations.
 - Station codes beginning with DEMO_ are project identifiers.
 - Timetable data contains 12 fictional service patterns and 42 ordered stops.
@@ -89,39 +108,67 @@
 - Preview reports no conflicts for the current demonstration dataset.
 - Demonstration data is not an official timetable or live service feed.
 
-## Current local validation
+## Staff identity configuration
 
-- Backend lint: passed across source, tests, migrations and scripts.
-- Backend formatting: passed across the checked files.
-- mypy: passed for 51 source files.
-- Full backend suite: 184 passed.
-- Alembic migration upgrade and schema check: passed.
-- Station and timetable seed repeatability: passed.
-- Dated-run materialization repeatability: passed.
-- Source registration and import-summary repeatability: passed.
-- Import tests cover read-only preview, conflicts and transaction rollback.
-- Provenance API tests cover registered sources and null source metadata.
+- Password provisioning policy: 15–128 characters.
+- Password whitespace is preserved.
+- Initial roles: controller and administrator.
+- Permissions are explicitly mapped; administrator has no blanket bypass.
+- Session absolute lifetime defaults to eight hours.
+- Session idle timeout defaults to thirty minutes.
+- Login-rate window defaults to five minutes.
+- Default limits: 30 attempts per client and 5 per account per window.
+- Raw session tokens are stored only in the browser cookie.
+- The database stores their SHA-256 hashes.
+- CSRF tokens are separate from session authentication tokens.
+- Local HTTP development explicitly disables Secure cookies.
+- Production requires Secure cookies and configured HTTPS origins.
+- A local controller account exists; its password is not recorded in Git.
+
+## Current backend validation
+
+- Ruff lint: passed across source, tests, migrations and scripts.
+- Ruff formatting: 114 files already formatted.
+- mypy: passed for 76 source files.
+- Full backend suite: 294 passed.
+- Configuration and password tests: 29 passed.
+- Permission and provisioning tests: 16 passed.
+- Session-service tests: 22 passed.
+- Login-rate-limit tests: 13 passed.
+- Login-service tests: 12 passed.
+- Authentication API tests: 22 passed.
+- Tests verify failed logins preserve their rate counters.
+- Tests verify changed account credentials/state prevent stale login.
+- Tests verify logout revocation and rejection of replayed cookies.
+- Tests verify origin checks, CSRF failures and permission denial.
+- Tests verify idle and absolute expiry boundaries.
+- Latest staff-identity GitHub CI: pending.
+
+## Completed journey validation
+
+These results belong to the completed journey-details work:
+
+- Backend suite at that checkpoint: 184 passed.
 - Frontend ESLint and production build: passed.
 - Frontend tests: 33 passed.
+- Timetable and run materialization repeatability: passed.
+- Source registration and import-summary repeatability: passed.
 - Manually verified ordered stops and selected passenger segments.
-- Manually verified inclusive arrival deadlines and overnight arrival dates.
+- Manually verified inclusive deadlines and overnight arrival dates.
 - Manually verified clearing outdated results after input changes.
-- Manually verified the registered source card and freshness explanation.
-- Latest GitHub CI remains to be checked after the final provenance commit.
+- Manually verified the source card and freshness explanation.
 
-## Earlier validation
+The staff frontend has not yet been implemented or validated.
 
-These checks were performed before the latest journey-details branch changes:
+## Earlier clean-checkout validation
 
-- GitHub Actions backend and frontend checks passed for prior commits.
+These are historical checks and do not verify the current identity branch:
+
 - Foundation clean-checkout verification passed on Windows.
 - Locked backend and frontend installation passed on the verification clone.
 - Fresh PostgreSQL migration and repeatable station seeding passed.
 - Foundation verification ran 41 backend and 5 frontend tests.
 - The verification checkout remained clean.
-
-The earlier clean-checkout results do not establish verification of every
-change on the current branch.
 
 ## Current limitations and deferred integration
 
@@ -136,13 +183,19 @@ change on the current branch.
 - Restricted runs expose their status; detailed impact eligibility rules
   remain part of the disruption workflow.
 - The demonstration import command supports development and test environments.
-- Execution context identifies the command environment, not a staff actor.
-- Protected staff import access and attribution require the identity workflow.
+- Import execution context identifies the command environment, not a staff actor.
+- Protected staff import access and attribution are not yet implemented.
+- Expired session and rate-limit cleanup is not yet implemented.
+- Concurrent login-rate enforcement still requires dedicated verification.
+- Browser login, session restoration and permission-aware navigation are pending.
+- Deployment must configure trusted proxies correctly.
+- Staff provisioning is a trusted interactive CLI, not a public registration API.
 - Handbook alignment documents must be reconciled from feat/incident-reporting.
 
 ## Remaining v1 work
 
-- Staff accounts, expiring/revocable sessions and server-side permissions.
+- Expired identity-record cleanup and concurrent login-limit verification.
+- Staff login/session frontend and interaction tests.
 - Protected staff navigation and management workflows.
 - Authenticated timetable import access and actor attribution.
 - Separate passenger reports and verified incidents.
@@ -160,9 +213,9 @@ before declaring v1 complete.
 
 ## Next task
 
-Commit and push the validated provenance/import slice.
-Check GitHub CI for the exact branch commit and review the pull request.
-Merge journey details into main after checks pass.
+Commit and push the validated backend staff-authentication checkpoint.
 
-Then implement staff identity, sessions and permissions before returning
-to protected incident review.
+Add expired identity-record cleanup and concurrent login-limit tests.
+Then implement and test the staff login/session frontend.
+
+Keep feat/staff-identity open until its remaining work and CI checks pass.
