@@ -79,12 +79,31 @@ RAILCONNECT_ENVIRONMENT=development
 RAILCONNECT_DEBUG=false
 ```
 
+For local HTTP staff authentication, include:
+
+```dotenv
+RAILCONNECT_SESSION_COOKIE_NAME=railconnect_session
+RAILCONNECT_SESSION_COOKIE_SECURE=false
+RAILCONNECT_SESSION_TTL_SECONDS=28800
+RAILCONNECT_SESSION_IDLE_TIMEOUT_SECONDS=1800
+RAILCONNECT_TRUSTED_ORIGINS='["http://127.0.0.1:5173","http://localhost:5173"]'
+RAILCONNECT_LOGIN_RATE_WINDOW_SECONDS=300
+RAILCONNECT_LOGIN_RATE_CLIENT_LIMIT=30
+RAILCONNECT_LOGIN_RATE_ACCOUNT_LIMIT=5
+```
+
 The `.env` file is ignored by Git.
 Environment variables override values from `.env`.
 Run backend commands from the repository root so configuration is found.
 
+Restart the backend after changing configuration.
+
 PostgreSQL uses the configured password when initializing a new data volume.
 Changing `.env` alone does not change the password in an existing database.
+
+Production requires HTTPS, Secure cookies and explicitly configured HTTPS
+origins. Local HTTP settings must not be reused as production configuration.
+Deployment must configure trusted proxies correctly.
 
 ## Start PostgreSQL
 
@@ -215,7 +234,7 @@ Use `npm ci` after a fresh checkout or dependency changes.
 An existing installed environment only needs `npm run dev`.
 
 Vite forwards `/api` requests to the local backend during development.
-The backend must be running to load stations and journeys.
+The backend must be running to load stations, journeys and staff sessions.
 Deployment requires its own API routing configuration.
 
 ## Journey search and details
@@ -265,6 +284,98 @@ The UI explains that missing metadata does not establish freshness.
 
 Source registration and retrieval times are not live railway update times.
 
+## Staff identity and local testing
+
+Apply the database migrations before provisioning staff accounts.
+
+From the repository root, with the backend environment active:
+
+```powershell
+python scripts/provision_staff.py --username local_controller --display-name "Local Controller" --role controller
+```
+
+Enter and confirm a password containing 15 to 128 characters.
+Password input is hidden in the terminal.
+Store the password privately; do not put it in Git or shared screenshots.
+
+The command creates an individual account and role assignment.
+It rejects an existing username rather than replacing its password or role.
+
+Supported initial roles are controller and administrator.
+Administrator permissions are explicitly mapped.
+
+To create a separate local test account:
+
+```powershell
+python scripts/provision_staff.py --username local_controller_test --display-name "Local Test Controller" --role controller
+```
+
+Use a new username if that account already exists.
+Provisioning does not provide a password-reset workflow.
+
+Open http://127.0.0.1:5173 and select Staff access.
+Sign in using the account and password you provisioned.
+
+Staff access displays the account, roles, permissions and absolute expiry.
+Browser refresh and reopening Staff access restore a valid session.
+Refresh session checks the current account and session against the backend.
+
+The default absolute lifetime is eight hours.
+The default idle timeout is thirty minutes.
+The server enforces both limits.
+
+Sign out revokes the session and clears its cookie.
+An unconfirmed sign-out displays an error rather than reporting success.
+
+Journey search remains public.
+Incident and timetable management interfaces are implemented separately.
+
+Authentication endpoints are:
+
+- POST /api/v1/auth/login
+- GET /api/v1/auth/me
+- POST /api/v1/auth/logout
+
+Login requires JSON and a configured browser Origin.
+Authenticated mutations require an allowed Origin and the session CSRF token.
+The frontend sends cookies through same-origin API requests via the Vite proxy.
+
+Session tokens are delivered through HTTP-only cookies.
+The database stores their hashes.
+The frontend does not persist session or CSRF state in localStorage.
+
+## Identity-record cleanup
+
+Preview eligible records:
+
+```powershell
+python scripts/cleanup_identity.py
+```
+
+The default preview does not delete records.
+
+Apply one bounded cleanup batch explicitly:
+
+```powershell
+python scripts/cleanup_identity.py --apply
+```
+
+Default retention is seven days for expired or revoked sessions and one day
+for expired login-rate windows.
+
+The default batch limit is 500 records per table.
+For supported options, run:
+
+```powershell
+python scripts/cleanup_identity.py --help
+```
+
+Cleanup preserves users, role assignments, current sessions and current
+rate-limit windows. Applied changes are transactional.
+
+Authentication rejects expired and revoked sessions even before cleanup.
+Cleanup is operator-run; deployment scheduling remains to be configured.
+
 ## Backend checks
 
 From the repository root, with the backend environment active:
@@ -275,11 +386,15 @@ python -m ruff check --config backend/pyproject.toml backend/src backend/tests b
 python -m ruff format --check --config backend/pyproject.toml backend/src backend/tests backend/migrations scripts
 python -m mypy --config-file backend/pyproject.toml backend/src/railconnect
 python -m alembic -c backend/alembic.ini check
-python -m pytest -c backend/pyproject.toml
+python -m pytest -c backend/pyproject.toml --tb=short
 ```
 
 Run PostgreSQL and apply migrations before running database tests.
-Tests use isolated fixtures and roll back their database changes.
+
+Most database tests use isolated fixtures and roll back their changes.
+Concurrency tests use independent connections and committed test records,
+then remove their own generated records.
+
 Never configure tests to use a deployed production database.
 
 ## Frontend checks
@@ -322,6 +437,7 @@ cp .env.example .env
 ```
 
 Generate and configure the database password as described above.
+Configure staff session settings for the intended environment.
 
 Python, Docker Compose and npm commands otherwise follow the same workflow.
 Use `/` path separators and `backend/.venv/bin/python` for explicit
