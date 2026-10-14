@@ -138,5 +138,22 @@ The current demonstration importer supports insertion and verification.
 Replacement of existing service definitions requires a separately reviewed
 versioning and migration workflow.
 
-A protected staff import interface and authenticated attribution will be
-implemented with the staff identity workflow.
+Staff identity is implemented.
+A protected staff import interface and authenticated import attribution
+remain planned for the timetable-management feature.
+
+## Passenger reports and incident scenarios
+
+Passenger reports are stored separately from this timetable dataset.
+They are unverified claims and do not change scheduled run timestamps
+or establish an operational disruption.
+
+The incident-reporting implementation includes synthetic database and API
+test fixtures. These fixtures are not official railway incident records
+and are not part of the timetable JSON files listed above.
+
+Protected verification, incident lifecycle workflows and journey impact
+integration remain subsequent implementation stages.
+
+Future repeatable incident demonstration scenarios must be explicitly
+labelled as synthetic and documented separately from timetable provenance.

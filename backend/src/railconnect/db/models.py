@@ -4,6 +4,11 @@ from railconnect.modules.identity.models.login_rate_limit import LoginRateLimit
 from railconnect.modules.identity.models.role import Role
 from railconnect.modules.identity.models.user import User
 from railconnect.modules.identity.models.user_role import UserRole
+from railconnect.modules.incidents.models.incident import Incident
+from railconnect.modules.incidents.models.incident_audit_event import IncidentAuditEvent
+from railconnect.modules.incidents.models.incident_report import IncidentReport
+from railconnect.modules.incidents.models.incident_revision import IncidentRevision
+from railconnect.modules.incidents.models.report_rate_limit import ReportRateLimit
 from railconnect.modules.stations.models import Station
 from railconnect.modules.timetable.models.run_stop import RunStop
 from railconnect.modules.timetable.models.service_run import ServiceRun
@@ -15,6 +20,10 @@ from railconnect.modules.timetable.models.train_service import TrainService
 __all__ = [
     "AuthSession",
     "Base",
+    "Incident",
+    "IncidentAuditEvent",
+    "IncidentReport",
+    "IncidentRevision",
     "LoginRateLimit",
     "Role",
     "RunStop",
@@ -26,4 +35,5 @@ __all__ = [
     "TrainService",
     "User",
     "UserRole",
+    "ReportRateLimit",
 ]

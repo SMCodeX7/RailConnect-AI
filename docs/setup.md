@@ -48,6 +48,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 .\backend\.venv\Scripts\Activate.ps1
 ```
 
+Activate the backend environment in each terminal that runs backend commands.
+
 ## Local configuration
 
 For a fresh checkout, create the local configuration file once:
@@ -65,21 +67,21 @@ python -c "import secrets; print(secrets.token_hex(24))"
 ```
 
 Open `.env` and assign that generated value to `POSTGRES_PASSWORD`.
-
 Keep this database URL:
 
 ```dotenv
 RAILCONNECT_DATABASE_URL=postgresql+psycopg://railconnect:${POSTGRES_PASSWORD}@127.0.0.1:5433/railconnect
 ```
 
-Keep development settings:
+Keep these development settings:
 
 ```dotenv
+RAILCONNECT_APP_NAME="RailConnect AI"
 RAILCONNECT_ENVIRONMENT=development
 RAILCONNECT_DEBUG=false
 ```
 
-For local HTTP staff authentication, include:
+For local HTTP staff authentication and submission limits, include:
 
 ```dotenv
 RAILCONNECT_SESSION_COOKIE_NAME=railconnect_session
@@ -88,9 +90,15 @@ RAILCONNECT_SESSION_TTL_SECONDS=28800
 RAILCONNECT_SESSION_IDLE_TIMEOUT_SECONDS=1800
 RAILCONNECT_TRUSTED_ORIGINS='["http://127.0.0.1:5173","http://localhost:5173"]'
 RAILCONNECT_LOGIN_RATE_WINDOW_SECONDS=300
-RAILCONNECT_LOGIN_RATE_CLIENT_LIMIT=30
-RAILCONNECT_LOGIN_RATE_ACCOUNT_LIMIT=5
+RAILCONNECT_LOGIN_CLIENT_MAX_ATTEMPTS=30
+RAILCONNECT_LOGIN_ACCOUNT_MAX_ATTEMPTS=5
+RAILCONNECT_REPORT_RATE_WINDOW_SECONDS=3600
+RAILCONNECT_REPORT_CLIENT_MAX_ATTEMPTS=5
 ```
+
+Use the same non-secret setting names in `.env.example`.
+Leave its database password blank.
+Keep the actual database password only in the ignored local configuration.
 
 The `.env` file is ignored by Git.
 Environment variables override values from `.env`.
@@ -128,6 +136,8 @@ The local database listens on `127.0.0.1:5433`.
 Its data persists in a Docker volume.
 
 ## Migrations and demonstration data
+
+With the backend environment active:
 
 ```powershell
 python -m alembic -c backend/alembic.ini upgrade head
@@ -199,9 +209,10 @@ See `docs/data-card.md` for coverage, limitations and update procedures.
 
 ## Start the backend
 
-In a dedicated terminal with the backend environment active:
+In a dedicated terminal, starting from the repository root:
 
 ```powershell
+.\backend\.venv\Scripts\Activate.ps1
 python -m uvicorn railconnect.app:create_app --factory --reload --reload-dir backend/src --host 127.0.0.1 --port 8000
 ```
 
@@ -220,7 +231,7 @@ Stop the server with Ctrl+C.
 
 ## Frontend installation and startup
 
-In another terminal, starting from the repository root:
+In a separate terminal, starting from the repository root:
 
 ```powershell
 Set-Location frontend
@@ -238,6 +249,12 @@ The backend must be running to load stations, journeys and staff sessions.
 Deployment requires its own API routing configuration.
 
 ## Journey search and details
+
+The search endpoint is:
+
+```text
+GET /api/v1/journeys
+```
 
 Journey search uses:
 
@@ -344,6 +361,9 @@ Session tokens are delivered through HTTP-only cookies.
 The database stores their hashes.
 The frontend does not persist session or CSRF state in localStorage.
 
+The default login limits are 30 attempts per client and 5 per account
+within a five-minute window.
+
 ## Identity-record cleanup
 
 Preview eligible records:
@@ -371,10 +391,141 @@ python scripts/cleanup_identity.py --help
 ```
 
 Cleanup preserves users, role assignments, current sessions and current
-rate-limit windows. Applied changes are transactional.
+rate-limit windows.
+
+Deletion first selects and locks a bounded list of keys.
+Only those selected records are deleted.
+Applied changes are transactional.
 
 Authentication rejects expired and revoked sessions even before cleanup.
 Cleanup is operator-run; deployment scheduling remains to be configured.
+
+## Passenger report submission
+
+The submission endpoint is:
+
+```text
+POST /api/v1/reports
+```
+
+Submission requires JSON and an explicitly configured browser Origin.
+
+Required fields:
+
+- title: 1 to 160 characters after boundary whitespace removal.
+- narrative: 1 to 4000 characters after boundary whitespace removal.
+- observed_at: a timezone-aware timestamp.
+
+Optional scope hints:
+
+- run_hint_id
+- station_hint_id
+- departure_stop_sequence_hint
+- arrival_stop_sequence_hint
+
+Segment endpoints must be supplied together and belong to the hinted run.
+The arrival stop sequence must follow the departure stop sequence.
+
+A station hint must identify an active station.
+When combined with a run or segment, it must belong to that scope.
+
+Cancelled and restricted runs can still be reported.
+Report acceptance does not establish journey feasibility.
+
+Observation time cannot be in the future.
+Scope hints remain unverified until staff review.
+
+Passengers cannot supply status, reviewer identity, review reasons,
+approved delay values or submission timestamps.
+
+Successful submission returns HTTP 201 and a pending receipt containing:
+
+- report_id
+- status
+- submitted_at
+- message
+
+The receipt excludes the narrative, staff identity and private review fields.
+Submission does not create approved operational evidence or change journeys.
+
+Anonymous passengers may submit.
+When a staff cookie is present, valid authentication and the session
+CSRF token are required. Staff identity is derived on the server.
+
+An invalid or expired staff cookie does not silently become anonymous access.
+
+Report limits use these settings:
+
+```dotenv
+RAILCONNECT_REPORT_RATE_WINDOW_SECONDS=3600
+RAILCONNECT_REPORT_CLIENT_MAX_ATTEMPTS=5
+```
+
+The default is five attempts per client within a one-hour window.
+Report limits use separate database counters from staff login limits.
+Rejected limited submissions return 429 with Retry-After.
+
+Attempts reaching the submission service are counted separately from
+report creation. A failed report transaction does not reset its counter.
+Malformed bodies are rejected by API validation before the service.
+
+The report-submission API is implemented.
+The passenger reporting interface and protected review workflow remain
+subsequent implementation stages.
+
+## Incident storage and history
+
+Migration `5c23c99becea` adds:
+
+- incident_reports
+- incidents
+- incident_revisions
+- incident_audit_events
+
+Migration `af88e86de607` adds report_rate_limits.
+
+Passenger claims are stored separately from approved operational facts.
+Revision records identify the approved run or segment, effective interval,
+impact, evidence basis and verification actor.
+
+Database triggers reject updates, deletes and truncation of revision
+and audit history. Transaction rollback remains supported.
+
+Staff review, amendment, resolution and public incident responses are
+implemented in subsequent stages. The presence of these tables does not
+mean those workflows are complete.
+
+## Report-limit cleanup
+
+Preview old report counters:
+
+```powershell
+python scripts/cleanup_report_limits.py
+```
+
+Apply a bounded deletion batch explicitly:
+
+```powershell
+python scripts/cleanup_report_limits.py --apply
+```
+
+Default retention is one day after the counter window expires.
+The default batch limit is 500 records.
+
+Available options include --retention-days and --batch-limit:
+
+```powershell
+python scripts/cleanup_report_limits.py --help
+```
+
+Retention must be between 1 and 365 days.
+Batch limits must be between 1 and 1000.
+
+Cleanup preserves current windows and does not delete reports or login counters.
+Selected deletion keys are locked and bounded before deletion.
+Applied changes are transactional.
+
+Deployment must arrange an operator procedure or cleanup schedule.
 
 ## Backend checks
 
@@ -394,6 +545,8 @@ Run PostgreSQL and apply migrations before running database tests.
 Most database tests use isolated fixtures and roll back their changes.
 Concurrency tests use independent connections and committed test records,
 then remove their own generated records.
+
+Cleanup tests exercise deletion inside rollback-isolated transactions.
 
 Never configure tests to use a deployed production database.
 
@@ -437,7 +590,7 @@ cp .env.example .env
 ```
 
 Generate and configure the database password as described above.
-Configure staff session settings for the intended environment.
+Configure staff session and rate-limit settings for the intended environment.
 
 Python, Docker Compose and npm commands otherwise follow the same workflow.
 Use `/` path separators and `backend/.venv/bin/python` for explicit

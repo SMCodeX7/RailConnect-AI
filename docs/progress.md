@@ -2,15 +2,17 @@
 
 ## Current checkpoint
 
-- Updated: 2026-10-14.
+- Updated: 2026-10-15.
 - Release target: v1.0 portfolio pilot, in progress.
-- Branch: feat/staff-identity.
-- Foundation, initial journey search and journey-details work merged into main.
-- Backend staff authentication checkpoint committed.
-- Identity cleanup, concurrency verification and staff frontend completed locally.
-- Latest changes are ready for commit after documentation review.
-- Latest staff-identity GitHub CI and merge remain pending.
-- Handbook alignment documents remain on feat/incident-reporting.
+- Branch: feat/incident-reporting.
+- Foundation, journey search/details and staff identity merged into main.
+- Incident-reporting planning documents reconciled with completed features.
+- Stage 1: incident database models and protections completed.
+- Stage 2: passenger submission API and durable rate limiting completed.
+- Complete backend suite: 431 passed without skips.
+- Stage 1-2 checkpoint ready to commit.
+- Staff review, incident lifecycle, public responses and frontend remain.
+- GitHub CI for this branch checkpoint has not yet been verified.
 
 ## Completed foundation
 
@@ -95,6 +97,41 @@
 - Provisioned local controller accounts interactively.
 - Verified the staff workflow against the running backend.
 
+## Completed incident-reporting stages
+
+### Stage 1: database models and protections
+
+- Added separate passenger-report and verified-incident database records.
+- Added storage for approved incident revisions and actor-attributed audit events.
+- Added constraints for review state, resolution state, scope and impact values.
+- Added run/segment foreign keys and unique incident revision numbers.
+- Added database triggers rejecting revision/audit updates, deletes and truncation.
+- Verified immutable-history protections and transaction rollback.
+- Updated ADR 0003 and reconciled the roadmap.
+
+### Stage 2: passenger submission
+
+- Added submission schemas rejecting server-owned review and approval fields.
+- Added scope-hint validation against prepared runs, stops and active stations.
+- Allowed reporting of cancelled and restricted runs.
+- Added POST /api/v1/reports with server-forced pending state.
+- Added receipt responses excluding narratives and private review fields.
+- Required timezone-aware observation times and rejected future observations.
+- Added server-derived staff attribution for authenticated submissions.
+- Required CSRF protection when a staff session cookie is present.
+- Rejected invalid staff cookies rather than falling back to anonymous access.
+- Added origin and JSON content-type checks.
+- Added separate atomic PostgreSQL report-submission counters.
+- Preserved counters independently of report transaction failures.
+- Verified concurrent report-limit admission.
+- Added report-counter cleanup preview and bounded transactional deletion.
+- Fixed identity and report cleanup to delete only selected, locked keys.
+- Strengthened report cleanup tests to verify actual deletion counts.
+- Added 121 incident/report tests, bringing the backend suite to 431.
+
+Protected review, amendment, resolution and their audit-producing workflows
+remain unimplemented. Their database storage is ready.
+
 ## Database and demonstration data
 
 - PostgreSQL 17 runs locally through Docker Compose.
@@ -106,7 +143,12 @@
 - Migration b9c0a25509af creates source_records and timetable_imports.
 - Migration dfeb4f1c64a4 creates users, roles, user_roles,
   sessions and login_rate_limits.
-- Current migration head: dfeb4f1c64a4.
+- Migration 5c23c99becea creates incident_reports, incidents,
+  incident_revisions and incident_audit_events.
+- Migration 5c23c99becea also protects revision and audit history
+  against updates, deletes and truncation.
+- Migration af88e86de607 creates report_rate_limits.
+- Current migration head: af88e86de607.
 - Alembic reports no new upgrade operations.
 - Seeded 30 selected demonstration stations.
 - Station codes beginning with DEMO_ are project identifiers.
@@ -129,7 +171,7 @@
 - Provisioned passwords contain 15 to 128 characters.
 - Password whitespace is preserved.
 - Initial roles are controller and administrator.
-- Administrator has explicitly mapped permissions, not a blanket bypass.
+- Administrator permissions are explicitly mapped.
 - Session absolute lifetime defaults to eight hours.
 - Session idle timeout defaults to thirty minutes.
 - Login-rate window defaults to five minutes.
@@ -146,37 +188,54 @@
 - Cleanup requires explicit application and is not automatically scheduled.
 - Local account passwords are not recorded in Git.
 
+## Passenger reporting configuration
+
+- Default report limit is five attempts per client within one hour.
+- Report counters are separate from staff-login counters.
+- Counter keys store a hash rather than the raw client identifier.
+- Attempts reaching the service consume the report counter.
+- Malformed bodies are rejected before the submission service.
+- A failed report transaction does not reset its committed attempt counter.
+- Rate rejection returns 429 with Retry-After.
+- New reports have pending status and version 1.
+- Submission receipts do not establish verification.
+- Default report-counter retention is one day after window expiry.
+- Default report-counter cleanup batch limit is 500.
+- Cleanup preserves reports, login counters and current report-limit windows.
+
 ## Current local validation
 
-- Ruff lint passed across source, tests, migrations and scripts.
-- Ruff formatting: 119 files already formatted.
-- mypy passed for 78 source files.
-- Complete backend suite: 310 passed, with no skipped tests.
-- Identity cleanup tests: 14 passed.
-- Concurrent login-limit tests: 2 passed.
-- Current migration head and schema checks passed.
-- Frontend ESLint passed.
-- Frontend TypeScript checking and production build passed.
-- Complete frontend suite: 62 passed across 9 files.
-- Staff-panel tests: 12 passed.
-- Shared HTTP tests: 11 passed.
-- Staff API contract tests: 3 passed.
-- Application navigation tests: 3 passed.
-- Existing journey frontend tests: 33 passed.
-- Manually verified public journey access without staff login.
-- Manually verified generic credential errors and cleared password input.
-- Manually verified successful login and controller permissions.
-- Manually verified session restoration after browser refresh.
-- Manually verified explicit session refresh.
-- Manually verified switching between journey and staff sections.
-- Manually verified logout and remaining signed out after refresh.
-- Latest GitHub CI remains pending.
+- Backend Ruff lint passed across source, tests, migrations and scripts.
+- Backend formatting check passed; 146 files checked at this checkpoint.
+- mypy passed for 95 source files.
+- Complete backend suite: 431 passed, with no skipped tests.
+- Incident database and scope tests: 36 passed.
+- Submission schema tests: 28 passed.
+- Report-limit tests: 13 passed.
+- Submission-service tests: 11 passed.
+- Report API tests: 17 passed.
+- Concurrent report-limit test: 1 passed.
+- Report cleanup tests: 15 passed.
+- Combined identity/report cleanup tests: 29 passed.
+- Current migration head: af88e86de607.
+- Alembic reports no new upgrade operations.
+- Report cleanup preview completed without deletion.
+- Git whitespace check passed.
+- Previous frontend checkpoint: 62 tests, lint and build passed.
+- No frontend changes are included in the current incident-reporting slice.
+- Latest incident-reporting GitHub CI remains pending.
+
+Focused test counts are subsets of the complete suite.
+The combined cleanup count is not an additional set of tests.
 
 ## Earlier validation
 
 These are historical checkpoints, not clean-checkout verification of
 every change on the current branch:
 
+- Completed staff-identity backend suite: 310 passed.
+- Completed staff-identity frontend suite: 62 passed.
+- Nine manual staff login/session/logout checks passed.
 - Journey-details backend suite: 184 passed.
 - Journey frontend suite: 33 passed.
 - Timetable, source registration and run materialization were repeatable.
@@ -205,22 +264,46 @@ every change on the current branch:
 - Displayed permissions do not implement incident or import workflows.
 - Staff provisioning is an interactive CLI, not public registration.
 - Self-service password recovery and account management are not implemented.
-- Identity cleanup scheduling remains a deployment responsibility.
+- Passenger submission is implemented at API level; its frontend remains pending.
+- Protected staff review, incident amendment and resolution remain pending.
+- Transactional review/lifecycle audit writes remain pending.
+- Public incident responses remain pending.
+- Incident records do not yet affect journey results.
+- Anonymous reports do not establish submitter identity.
+- Self-review prevention currently applies to recorded staff submitters.
+- Identity and report-counter cleanup scheduling remain deployment responsibilities.
 - Deployment must configure HTTPS, origins and trusted proxies correctly.
-- Handbook alignment documents must be reconciled from feat/incident-reporting.
 - Latest branch changes still require GitHub CI before merge.
+
+## Incident-reporting branch stages
+
+1. Database models, migrations and validation: completed.
+2. Passenger submission API, rate limiting and cleanup: completed.
+3. Protected staff queue and verify/reject workflow: pending.
+4. Revisions, resolution and transactional audit history: pending.
+5. Approved public incident responses: pending.
+6. Passenger and staff frontend workflows: pending.
+7. Final integration, documentation, CI and merge: pending.
+
+Estimated branch completion is approximately 40%.
+This is an effort estimate, not a count of checked items.
+It does not represent completion of the entire v1 release.
 
 ## Remaining v1 work
 
-- Protected staff management workflows.
+- Protected report queue and verify/reject decisions.
+- Versioned incident amendments, resolution and transactional audit writes.
+- Approved public incident responses.
+- Passenger reporting and staff incident-management interfaces.
 - Authenticated timetable import access and actor attribution.
-- Separate passenger reports and verified incidents.
-- Versioned review, resolution and transactional audit history.
+- Protected timetable management interface.
 - Disruption effects and feasible alternatives.
 - Policy retrieval and ownership-protected passenger assistant.
 - Assistant evaluation and browser workflow tests.
+- Repeatable synthetic scenarios and release demonstration.
 - Final responsive and accessibility review.
 - Deployment, persistence and recovery verification.
+- Cleanup operational procedures or scheduling.
 - Portfolio documentation, demonstration video and release tag.
 
 Check remaining handbook requirements, including station aliases,
@@ -229,8 +312,13 @@ before declaring v1 complete.
 
 ## Next task
 
-Commit and push the completed identity cleanup and staff frontend.
+Commit the validated incident database and passenger submission checkpoint.
 
-Verify GitHub CI and review the staff-identity pull request before merging.
-Then reconcile the incident-reporting planning documents and implement
-the next feature according to the handbook.
+Continue on feat/incident-reporting with stage 3:
+protected staff report queue and verify/reject decisions.
+
+Implement expected-version conflict handling and atomic report decisions,
+initial incident revisions and audit writes.
+
+Commit each subsequent validated stage separately.
+Push and review the completed branch before merging after CI passes.

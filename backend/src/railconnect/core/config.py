@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     login_rate_window_seconds: int = Field(default=300, ge=60, le=3600)
     login_client_max_attempts: int = Field(default=30, ge=1, le=1000)
     login_account_max_attempts: int = Field(default=5, ge=1, le=100)
+    report_rate_window_seconds: int = Field(default=3600, ge=60, le=86400)
+    report_client_max_attempts: int = Field(default=5, ge=1, le=100)
 
     @field_validator("trusted_origins")
     @classmethod

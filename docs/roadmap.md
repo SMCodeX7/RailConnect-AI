@@ -5,73 +5,143 @@
 The Complete Project and Development Handbook, document version 1.0,
 defines the release requirements.
 
-This checklist tracks implementation. Passing tests alone does not
-mean a feature is deployed or released.
+This checklist tracks implementation and validation.
+Passing local tests does not establish that a feature is deployed or released.
 
-## v0.1 foundation
+## Current checkpoint
 
-Implemented and locally validated:
+- Updated: 2026-10-14.
+- Release target: v1.0 portfolio pilot.
+- Active branch: feat/incident-reporting.
+- Foundation, journey search/details and staff identity merged into main.
+- Incident-reporting stages 1 and 2 implemented and validated locally.
+- Complete backend suite: 431 passed without skips.
+- Stage 1-2 commit pending.
+- Staff review and the remaining incident workflows are next.
+- GitHub CI for the current incident-reporting changes remains pending.
 
-- Modular FastAPI backend and React/TypeScript frontend.
-- Installed backend package and dependency lockfiles.
-- PostgreSQL configuration and Alembic migrations.
-- Validated settings, request IDs, error responses and structured logging.
-- Liveness and database readiness endpoints.
-- Station listing/search API and connected selectors.
-- Backend and frontend CI.
-- Foundation clean-checkout verification.
+## Foundation
 
-Remaining verification:
+Implemented and validated:
+
+- [x] Modular FastAPI backend and React/TypeScript frontend.
+- [x] Backend packaging and dependency lockfiles.
+- [x] PostgreSQL configuration and Alembic migrations.
+- [x] Validated settings, request IDs, error responses and structured logging.
+- [x] Liveness and database readiness endpoints.
+- [x] Station listing/search API and connected selectors.
+- [x] Backend and frontend CI.
+- [x] Foundation clean-checkout verification.
+- [x] Documented Linux/macOS setup differences.
+
+Remaining release checks:
 
 - [ ] Check repository templates and license.
-- [ ] Document Linux/macOS setup differences.
-- [ ] Verify explicit database constraint regression tests.
+- [ ] Reconcile station alias requirements with the handbook.
+- [ ] Verify OpenAPI compatibility requirements.
+- [ ] Repeat clean-checkout verification for the release candidate.
 
 ## v1 journey and data requirements
 
-Implemented and tested:
+- [x] Demonstration station and timetable seeding.
+- [x] Input validation and repeatable timetable imports.
+- [x] Direct journey search.
+- [x] Operating-day and validity checks during run preparation.
+- [x] Reverse-direction and overnight handling.
+- [x] Search pagination, loading, retry and stale-request cancellation.
+- [x] Source records and dataset card.
+- [x] Import preview and persistent successful import summary.
+- [x] Canonical dated service runs and ordered segment identity.
+- [x] Boarding and alighting permissions.
+- [x] Journey detail API and ordered-stop view.
+- [x] Inclusive arrival-deadline filtering.
+- [x] Source/version and freshness information in journey views.
+- [x] Documented timetable units and API naming decisions.
+- [x] Database constraint and run-materialization regression tests.
+- [ ] Authenticated staff import preview and commit.
+- [ ] Staff actor attribution for protected imports.
+- [ ] Protected timetable management interface.
 
-- Demonstration station and timetable seeding.
-- Input validation and repeatable timetable imports.
-- Direct journey search with operating days and validity dates.
-- Reverse-direction and overnight handling.
-- Frontend search, pagination, loading, retry and cancellation of stale requests.
-
-Remaining:
-
-- [ ] Source records and dataset card.
-- [ ] Import preview and traceable import summary.
-- [ ] Canonical dated service runs and ordered segment identity.
-- [ ] Boarding and alighting permissions.
-- [ ] Journey detail API and ordered-stop view.
-- [ ] Arrival-deadline filtering.
-- [ ] Source/version and freshness information in journey views.
-- [ ] Record and reconcile timetable unit and API naming decisions.
+Demonstration schedules are fictional.
+Search coverage depends on explicitly prepared dated runs.
+Source registration time does not establish live operational freshness.
 
 ## v1 staff identity
 
-- [ ] Staff users, roles and explicit permissions.
-- [ ] Secure password hashing and initial staff provisioning.
-- [ ] Expiring, revocable sessions.
-- [ ] Login, logout and current-session API.
-- [ ] Protected staff navigation and login UI.
-- [ ] CSRF protection for cookie-authenticated mutations.
-- [ ] Login rate limiting.
-- [ ] Missing, expired, revoked and insufficient-permission tests.
+- [x] Staff users, roles and explicit permissions.
+- [x] Argon2id password hashing and interactive provisioning.
+- [x] Expiring, revocable sessions.
+- [x] Login, logout and current-session API.
+- [x] Staff-access interface and session restoration.
+- [x] CSRF and origin protection.
+- [x] Database-backed login rate limiting.
+- [x] Missing, expired, revoked and insufficient-permission tests.
+- [x] Concurrent client and account limit verification.
+- [x] Bounded identity cleanup with read-only preview.
+- [x] Frontend login, logout, expiry and navigation tests.
+- [x] Manual login, restoration, refresh and logout verification.
+- [x] Verified identity cleanup deletes only selected, locked batch keys.
+- [ ] Configure identity cleanup scheduling during deployment.
+- [ ] Connect authorization to each new management workflow.
+
+Permission displays do not implement the corresponding management actions.
+Every protected action requires server-side authorization.
 
 ## v1 reports and incidents
 
-- [ ] Separate passenger reports and verified incidents.
-- [ ] Rate-limited submission with server-forced pending state.
-- [ ] Protected pending queue.
-- [ ] Verification and rejection with actor and reason.
+### Completed database and submission work
+
+- [x] Separate passenger-report and verified-incident database records.
+- [x] Incident revision and actor-attributed audit storage.
+- [x] Database constraints for review state, scope and impact values.
+- [x] Database protection against revision/audit updates, deletes and truncation.
+- [x] Submission schemas rejecting server-owned review fields.
+- [x] Scope-hint validation against prepared runs, stops and active stations.
+- [x] Timezone-aware observation times and future-observation rejection.
+- [x] POST /api/v1/reports with server-forced pending state.
+- [x] Submission receipts excluding narratives and private review fields.
+- [x] Anonymous submission and server-derived staff attribution.
+- [x] CSRF checks when a staff session cookie is present.
+- [x] Origin and JSON content-type checks.
+- [x] Separate database-backed report-submission rate limits.
+- [x] Counter transactions preserved independently of report creation failures.
+- [x] Concurrent report-limit admission verification.
+- [x] Report-counter cleanup preview and bounded transactional deletion.
+- [x] Submission authorization, validation and rollback tests.
+
+### Remaining review and lifecycle work
+
+- [ ] Protected pending queue with bounded pagination.
+- [ ] Verification and rejection with authenticated actor and reason.
 - [ ] Expected-version conflict checks.
-- [ ] Immutable incident revisions.
-- [ ] Transactional audit records.
+- [ ] Atomic verification creating the linked incident and initial revision.
+- [ ] Approved amendment workflow creating new immutable revisions.
+- [ ] Transactional audit writes for review, amendment and resolution.
 - [ ] Resolution with effective end time and preserved history.
-- [ ] Public response allowlists.
-- [ ] Staff review UI and refresh after decisions.
+- [ ] Approved public incident response allowlists.
+- [ ] Public exclusion of pending/rejected claims and private notes.
+- [ ] Passenger reporting interface.
+- [ ] Staff review and incident-management interfaces.
+- [ ] Refresh after successful review and lifecycle decisions.
 - [ ] Repeatable synthetic report and incident scenarios.
+- [ ] Review authorization, concurrent decision and rollback tests.
+- [ ] Manual end-to-end incident workflow verification.
+
+Database storage and immutability protections are complete.
+Review, amendment, resolution and their audit-producing workflows remain pending.
+
+### Incident-reporting branch stages
+
+- [x] Stage 1: database models, migrations and constraint validation.
+- [x] Stage 2: passenger submission API, rate limiting and cleanup.
+- [ ] Stage 3: protected staff queue and verify/reject workflow.
+- [ ] Stage 4: revisions, resolution and transactional audit history.
+- [ ] Stage 5: approved public incident responses.
+- [ ] Stage 6: passenger and staff frontend workflows.
+- [ ] Stage 7: final integration, documentation, CI and merge.
+
+Commit each validated stage separately.
+Keep the completed work on feat/incident-reporting until branch review and merge.
 
 ## v1 disruptions and alternatives
 
@@ -84,6 +154,10 @@ Remaining:
 - [ ] Return feasible known alternatives with explanations.
 - [ ] Handle no available alternative explicitly.
 - [ ] Test unrelated incidents, resolution and overnight boundaries.
+- [ ] Refresh affected journey views after operational changes.
+
+Unverified passenger reports must not change operational journey results.
+Estimated delays require approved values and an explicit evidence basis.
 
 ## v1 passenger assistant
 
@@ -99,6 +173,9 @@ Remaining:
 - [ ] Assistant UI with citations and failure states.
 - [ ] Optional model adapter with timeout and evidence validation.
 
+The assistant must distinguish verified operational evidence,
+fictional demonstration data and unavailable information.
+
 ## v1 evaluation and release
 
 - [ ] At least 60 independent English evaluation cases.
@@ -111,11 +188,61 @@ Remaining:
 - [ ] Complete the demonstration twice from reset fixtures.
 - [ ] Responsive, accessible passenger and staff UI.
 - [ ] Deployment build files and HTTPS configuration.
+- [ ] Trusted origin and proxy configuration.
+- [ ] Identity and report-counter cleanup operational procedures.
 - [ ] Restart and persistence verification.
 - [ ] Backup and separate-environment restore verification.
 - [ ] Setup, architecture, evaluation and operations documentation.
 - [ ] README, screenshots and short demonstration video.
 - [ ] Record deployed commit and tag v1.0.0 after release gates pass.
+
+## Validation checkpoints
+
+Historical checkpoints:
+
+- Foundation verification: 41 backend and 5 frontend tests passed.
+- Journey-details backend suite: 184 passed.
+- Journey frontend suite: 33 passed.
+- Completed staff-identity backend suite: 310 passed without skips.
+- Completed staff-identity frontend suite: 62 passed.
+- Nine manual staff-access checks passed.
+
+Current incident-reporting checkpoint:
+
+- Complete backend suite: 431 passed without skips.
+- Incident database and scope tests: 36 passed.
+- Submission schema tests: 28 passed.
+- Report-limit tests: 13 passed.
+- Submission-service tests: 11 passed.
+- Report API tests: 17 passed.
+- Concurrent report-limit test: 1 passed.
+- Report cleanup tests: 15 passed.
+- Combined identity/report cleanup tests: 29 passed.
+- Ruff lint and formatting passed.
+- mypy passed for 95 source files.
+- Alembic reports no new upgrade operations.
+- Migration head: af88e86de607.
+- Report cleanup preview completed without deletion.
+- Git whitespace check passed.
+- Current incident-reporting GitHub CI remains pending.
+
+These counts describe their checkpoints.
+New features must be validated against the complete current suite.
+Historical frontend results do not verify future incident interface changes.
+
+## Remaining feature branches
+
+The working sequence after staff identity is:
+
+1. feat/incident-reporting
+2. feat/timetable-management
+3. feat/disruption-effects
+4. feat/passenger-assistant
+5. feat/pilot-validation
+6. feat/pilot-release
+
+Split a branch when necessary to keep changes reviewable.
+Branch organization does not reduce the handbook acceptance requirements.
 
 ## Later versions
 
@@ -137,8 +264,21 @@ Conditional integrations, scaling and operational readiness.
 
 ## Next implementation task
 
-Complete the journey data contract and detail workflow before adding
-staff identity and incident review.
+Commit the validated incident database and passenger submission checkpoint
+on feat/incident-reporting.
 
-Preserve the existing tested search behavior while introducing
-reviewed migrations and compatibility changes.
+Continue with the protected staff report queue and verify/reject workflow.
+Reuse the identity module for authenticated actors and explicit permissions.
+
+Require expected versions for review decisions.
+Write report decisions, approved incidents, initial revisions and audit
+events atomically.
+
+Then implement incident amendments, resolution, approved public responses
+and passenger/staff interfaces.
+
+Commit each validated stage separately.
+Push and review the completed branch before merging after CI passes.
+
+Connect disruption calculations in the subsequent disruption feature.
+Preserve the existing tested journey and authentication behavior.
