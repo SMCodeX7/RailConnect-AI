@@ -1,6 +1,14 @@
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, UniqueConstraint, Uuid
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    UniqueConstraint,
+    Uuid,
+    false,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from railconnect.db.base import Base
@@ -8,13 +16,17 @@ from railconnect.db.base import Base
 
 class ServiceStop(Base):
     __tablename__ = "service_stops"
+
     __table_args__ = (
         UniqueConstraint(
             "service_id",
             "stop_sequence",
             name="uq_service_stops_service_sequence",
         ),
-        CheckConstraint("stop_sequence > 0", name="positive_stop_sequence"),
+        CheckConstraint(
+            "stop_sequence > 0",
+            name="positive_stop_sequence",
+        ),
         CheckConstraint(
             "arrival_minutes IS NOT NULL OR departure_minutes IS NOT NULL",
             name="has_stop_time",
@@ -32,9 +44,21 @@ class ServiceStop(Base):
             "OR departure_minutes >= arrival_minutes",
             name="valid_stop_time_order",
         ),
+        CheckConstraint(
+            "NOT pickup_allowed OR departure_minutes IS NOT NULL",
+            name="pickup_requires_departure",
+        ),
+        CheckConstraint(
+            "NOT dropoff_allowed OR arrival_minutes IS NOT NULL",
+            name="dropoff_requires_arrival",
+        ),
     )
 
-    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(
+        Uuid,
+        primary_key=True,
+        default=uuid4,
+    )
     service_id: Mapped[UUID] = mapped_column(
         Uuid,
         ForeignKey("train_services.id", ondelete="CASCADE"),
@@ -46,6 +70,27 @@ class ServiceStop(Base):
         nullable=False,
         index=True,
     )
-    stop_sequence: Mapped[int] = mapped_column(Integer, nullable=False)
-    arrival_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    departure_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stop_sequence: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+    arrival_minutes: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    departure_minutes: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    pickup_allowed: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
+    dropoff_allowed: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )

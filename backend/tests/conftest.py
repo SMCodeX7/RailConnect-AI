@@ -100,3 +100,28 @@ def timetable_database() -> Iterator[tuple[Session, DemoTimetableDataset]]:
         transaction.rollback()
         connection.close()
         engine.dispose()
+
+
+@pytest.fixture
+def identity_database() -> Iterator[Session]:
+    settings = Settings()
+
+    if settings.database_url is None:
+        pytest.skip("PostgreSQL is required for identity tests.")
+
+    if settings.environment not in {"development", "test"}:
+        pytest.fail("Identity tests require a development or test database.")
+
+    engine = create_db_engine(settings)
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = Session(bind=connection, join_transaction_mode="create_savepoint")
+
+    try:
+        session.begin()
+        yield session
+    finally:
+        session.close()
+        transaction.rollback()
+        connection.close()
+        engine.dispose()

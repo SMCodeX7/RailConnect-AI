@@ -233,3 +233,142 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.journey-detail-panel {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #cbd5e1;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.stop-timeline {
+  display: grid;
+  gap: 1rem;
+  padding-left: 1.5rem;
+}
+
+.stop-timeline li {
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+}
+
+.stop-timeline h5 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.selected-stop {
+  border-left: 4px solid #2563eb !important;
+}
+
+@media (max-width: 600px) {
+  .detail-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.travel-date-field {
+  margin-top: 1rem;
+}
+
+.arrival-deadline-fields {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  min-width: 0;
+}
+
+.arrival-deadline-fields legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+}
+
+.source-card {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+}
+
+.source-metadata {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.source-metadata dt {
+  font-weight: 600;
+}
+
+.source-metadata dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.app-navigation,
+.staff-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 1.25rem;
+}
+
+.app-navigation button[aria-pressed='true'] {
+  font-weight: 700;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.staff-panel {
+  margin-block: 1.5rem;
+}
+
+.staff-login-fields {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 28rem;
+  padding: 1.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+.staff-login-fields legend {
+  padding-inline: 0.5rem;
+  font-weight: 700;
+}
+
+.staff-login-fields input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  border: 1px solid #94a3b8;
+  border-radius: 0.375rem;
+}
+
+.staff-login-fields button {
+  margin-top: 0.5rem;
+}
+
+.staff-account-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.staff-account-details dt {
+  font-weight: 700;
+}
+
+.staff-account-details dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}

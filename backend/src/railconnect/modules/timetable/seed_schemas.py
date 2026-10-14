@@ -5,16 +5,48 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DemoModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
 
 
 class DemoStop(DemoModel):
     station_code: str = Field(pattern=r"^DEMO_[A-Z0-9_]{1,15}$")
-    arrival_minutes: int | None = Field(default=None, ge=0, le=4319, strict=True)
-    departure_minutes: int | None = Field(default=None, ge=0, le=4319, strict=True)
+    arrival_minutes: int | None = Field(
+        default=None,
+        ge=0,
+        le=4319,
+        strict=True,
+    )
+    departure_minutes: int | None = Field(
+        default=None,
+        ge=0,
+        le=4319,
+        strict=True,
+    )
+    pickup_allowed: bool = Field(default=False, strict=True)
+    dropoff_allowed: bool = Field(default=False, strict=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_demo_permission_defaults(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+
+        values = dict(value)
+        values.setdefault(
+            "pickup_allowed",
+            values.get("departure_minutes") is not None,
+        )
+        values.setdefault(
+            "dropoff_allowed",
+            values.get("arrival_minutes") is not None,
+        )
+        return values
 
     @model_validator(mode="after")
-    def validate_times(self) -> Self:
+    def validate_times_and_permissions(self) -> Self:
         if self.arrival_minutes is None and self.departure_minutes is None:
             raise ValueError("A stop must have an arrival or departure time.")
 
@@ -24,6 +56,12 @@ class DemoStop(DemoModel):
             and self.departure_minutes < self.arrival_minutes
         ):
             raise ValueError("Departure cannot occur before arrival.")
+
+        if self.pickup_allowed and self.departure_minutes is None:
+            raise ValueError("Boarding requires a departure time.")
+
+        if self.dropoff_allowed and self.arrival_minutes is None:
+            raise ValueError("Alighting requires an arrival time.")
 
         return self
 

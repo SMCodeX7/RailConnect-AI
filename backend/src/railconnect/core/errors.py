@@ -14,6 +14,7 @@ HTTP_ERRORS = {
     404: ("NOT_FOUND", "The requested resource was not found."),
     405: ("METHOD_NOT_ALLOWED", "This request method is not allowed."),
     409: ("CONFLICT", "The request conflicts with the current state."),
+    415: ("UNSUPPORTED_MEDIA_TYPE", "This request requires a supported content type."),
     422: ("VALIDATION_ERROR", "Some request values are invalid or missing."),
     429: ("RATE_LIMITED", "Too many requests. Please try again later."),
     500: ("INTERNAL_ERROR", "An unexpected error occurred."),
