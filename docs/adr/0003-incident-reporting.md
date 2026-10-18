@@ -9,267 +9,242 @@ Accepted
 The v1 handbook distinguishes a passenger report from a verified
 operational incident.
 
-A report is an unverified claim. A controller decision establishes
-the approved scope, effective period and impact.
+A report is an unverified claim.
+An authorized staff decision establishes approved scope, effective period
+and impact.
 
-The implementation must preserve attribution, review history,
-concurrency checks and public evidence boundaries.
+The system must preserve attribution, review history, concurrency checks
+and public evidence boundaries.
 
 ## Decision
 
-Implement reporting and review within the incidents module.
+Implement reporting and lifecycle management in the incidents module.
 
 Keep separate records for:
 
-- Incident reports: submitted narrative, scope hints and review state.
-- Verified incidents: identity, originating report, current revision and lifecycle state.
-- Incident revisions: immutable versions of approved operational facts.
-- Audit events: actor, action, reason, time, request ID and affected records.
+- Reports: narrative, scope hints and review state.
+- Incidents: identity, originating report, lifecycle state and current revision.
+- Revisions: immutable approved operational facts.
+- Audit events: actor, action, reason, time, request ID and references.
 
-Link a verified incident to its originating report.
-Store approved scope and impact in its revisions.
+Link each incident to its originating report.
+Store approved scope and impact in revisions.
 
 ## Identity and permissions
 
-Reuse the staff identity module recorded in ADR 0005.
+Reuse the individual staff identity and session model in ADR 0005.
 
-Use individual staff accounts with expiring, revocable sessions.
 Derive actor identity and permissions on the server.
 
-Require these explicit permissions:
+Require:
 
 - reports.read for the pending queue.
 - reports.review for verification and rejection.
 - incidents.edit for amendments.
 - incidents.resolve for resolution.
-- audit.read for audit-history access.
+- audit.read for protected audit history.
 
-Controllers lack audit.read by default.
-Administrators have audit.read under the current role mapping.
+Controllers do not receive audit.read by default.
+Administrators have explicitly mapped permissions including audit.read.
 
-A shared reviewer credential does not replace staff identity.
+A shared credential does not replace individual staff identity.
 
-Submitters cannot assign verification status, reviewer identity,
-approved impact values or review timestamps.
+Submitters cannot assign verification state, reviewer identity,
+approved impacts or review timestamps.
 
-## Submission and rate limiting
+## Submission
 
-Submission accepts a title, narrative, aware observation time
-and optional station, run or segment hints.
+Accept title, narrative, aware observation time and optional scope hints.
 
-Require both segment endpoints when either is supplied.
-The arrival stop sequence must follow the departure stop sequence.
-Both endpoints must belong to the specified prepared dated run.
+Validate station hints against active stations.
+Validate dated-run and ordered-segment references.
+Require paired segment endpoints and increasing stop sequences.
+When station and run/segment hints are combined, require matching scope.
 
-Station hints must identify active stations.
-When combined with a run or segment, the station must belong to that scope.
+Reject future observations.
+Allow reports concerning cancelled and restricted runs.
 
-Reject future observations and invalid scope references.
-Cancelled and restricted runs may still be reported.
+Hints remain unverified.
+Acceptance does not establish journey feasibility or operational impact.
 
-Hints remain unverified until staff approval.
-Report acceptance does not establish operational impact or journey feasibility.
-
-New reports have server-forced pending status and version 1.
-Public input cannot assign submission timestamps or staff identity.
-
-Use separate PostgreSQL counters for passenger submissions.
-The default limit is five attempts per client within one hour.
-
-Update counters atomically across workers.
-Use the server-observed client address, subject to correct deployment
-proxy configuration.
-
-Commit the attempt counter independently of report creation.
-Report creation failure must not reset the counter.
-
-Malformed bodies are rejected before the submission service.
-They do not consume the service-level counter.
-
-Return 429 with Retry-After when the limit is exceeded.
+New reports have server-forced pending state and version 1.
 
 Anonymous submission is permitted.
-Require JSON and an explicitly configured browser Origin.
+Require JSON and an allowed browser Origin.
 
-When a staff cookie is present, require valid authentication and CSRF
-protection, and derive submitting staff identity on the server.
+If a staff cookie is present, require valid authentication and CSRF.
+Derive submitting staff identity on the server.
 
-An invalid or expired staff cookie must not silently become anonymous access.
+Invalid staff cookies must not silently become anonymous access.
 
 Identified staff submitters cannot review their own reports.
-This restriction covers recorded staff identity.
-Anonymous submission does not establish a person's identity.
+Anonymous reports do not establish person-level identity.
 
 Return a pending receipt without narrative or private review fields.
 
-Provide read-only counter cleanup preview and explicit bounded deletion.
+## Submission limits and cleanup
+
+Use separate PostgreSQL counters for report submissions.
+
+Default admission limit: five attempts per client per hour.
+Use a hash of the server-observed client identifier.
+Deployment must configure trusted proxies correctly.
+
+Update counters atomically across workers.
+Commit the attempt counter independently of report creation.
+
+A report creation failure must not reset the attempt counter.
+
+Malformed bodies rejected before the service do not consume its counter.
+Return 429 with Retry-After when limited.
+
+Provide preview and explicit bounded cleanup.
 Retain expired counters for one day by default.
 
-Select and lock a bounded set of keys before deleting those exact records.
-Cleanup preserves current windows, reports and login counters.
+Select and lock bounded keys before deleting those exact records.
+Cleanup preserves reports, login counters and current windows.
 Applied cleanup is transactional.
 
-Deployment must arrange an operator procedure or cleanup schedule.
+Scheduling remains an operational responsibility.
 
-## Protected report queue
+## Pending queue
 
-Expose a staff-only pending queue with bounded pagination.
-
-Order reports by submission time and report ID, oldest first.
-Reading the queue does not change report state.
+Expose a protected pending-report queue.
 
 Require reports.read in the HTTP dependency and application service.
-Return explicitly selected staff-review fields.
+Return explicit staff-review fields, including narrative where authorized.
 
-The queue may include the unverified narrative for authorized review.
-It is not a public incident response.
+Order by submission time and report ID.
+Use bounded pagination.
 
-Prevent caching of successful queue responses.
+Queue responses are private management contracts.
+Reading does not change report state.
+Successful responses use Cache-Control: no-store.
 
-## Report review
+## Verification and rejection
 
-A controller may verify or reject a pending report with a reason.
+Review requests include expected report version and a nonempty reason.
 
-Verification creates the linked incident and initial approved revision.
-Rejection records the decision without creating a verified incident.
+Lock and refresh the report before checking pending state and version.
+Reject stale or completed decisions with a conflict.
 
-Require explicit approved facts when verifying.
-Validate approved run and segment references independently of passenger hints.
+Verification requires explicit approved facts independently of hints.
+Validate approved run/segment references.
 
-Store integer versions for concurrency control.
-Review requests include the expected report version.
+Verification creates the linked incident and initial revision.
+Rejection creates no incident.
 
-Lock the report and refresh its database state during the review transaction.
-Reject stale versions and reports that are no longer pending.
+Derive reviewer, decision time and request ID on the server.
 
-A conflict must not overwrite another controller's decision.
-Concurrent verification and rejection permit one successful decision.
+Require a valid session, allowed Origin and session-bound CSRF token.
+Recheck current account and role permissions in the business transaction.
 
-Derive review actor, decision time and request ID on the server.
-
-Require a valid session, allowed Origin and session-bound CSRF token
-for review mutations.
-
-Check permission in the HTTP dependency and decision service.
-Recheck current account and role assignments inside the business transaction.
-
-Reject identified self-review.
-Reject a review clock earlier than report submission.
+Reject identified self-review and clocks earlier than report submission.
 
 Increment report version after a successful decision.
-Return resulting versions and applicable incident/revision references.
+Return resulting versions and applicable record references.
 
-Prevent caching of successful decision responses.
+Concurrent verification/rejection allows one successful decision
+and one version conflict.
 
-## Incident scope and impact
+## Approved scope and impact
 
-Approved scope identifies an affected dated run or ordered stop segment.
+Scope identifies a prepared dated run or ordered stop segment.
 
-Station references may describe scope but do not replace precise matching.
+Station descriptions do not replace exact impact matching.
 
-Supported effects are cancellation, restriction and estimated delay.
+Effects are cancellation, restriction and estimated delay.
 
-Cancellation applies to a whole dated run.
-Restriction and delay may apply to a whole run or an ordered segment.
+Cancellation requires whole-run scope.
+Restriction and delay may use run or segment scope.
 
-Segment endpoints must belong to the specified dated run.
-The approved run must have prepared stops.
+Segment endpoints must belong to the approved run.
 
-An estimated delay requires an explicit controller-entered value
+Delay requires an explicit integer estimate from 1 to 1440 minutes
 and a stated evidence basis.
 
-Approved delay values are integer minutes between 1 and 1440.
-This is a pilot validation bound, not a predicted railway delay.
+This is a pilot validation bound, not a railway prediction.
+Do not infer an approved delay from unverified narrative.
 
-Do not infer approved delay values from unverified narrative.
+Require aware effective timestamps with end after start.
+Normalize storage to UTC; display passenger times in Asia/Colombo.
 
-Store aware effective start and end times.
-Normalize approved timestamps to UTC.
-Display passenger times in Asia/Colombo.
-
-The intended effect interval includes its start and excludes its end:
+The intended effect interval is:
 
 effective_from <= timestamp < effective_until
 
-The end must follow the start.
+Actual matching and journey effects belong to the disruption feature.
 
-The disruption feature must apply effects only to matching runs or segments
-during the relevant effective interval.
+## Amendments
 
-Journey effect calculation remains a subsequent implementation.
-
-## Revisions and resolution
-
-Changes to approved scope or impact create a new revision.
-
-An authorized staff member explicitly approves replacement facts through
-the amendment operation. There is no separate draft-revision approval queue
-in the current implementation.
+An authorized amendment directly approves complete replacement facts.
+There is no separate draft-revision approval queue.
 
 Each revision records verification actor, time, reason and evidence basis.
 
-Keep previously approved revisions identifiable.
-Do not overwrite historical evidence.
+Amendments require expected incident version and incidents.edit.
+Lock and refresh the incident before changing it.
 
-Incident version controls concurrent lifecycle changes.
-Revision number identifies the approved operational facts.
+Only active incidents can be amended.
+Reject stale versions and changes to resolved incidents.
 
-Initial verification creates incident version 1 and revision number 1.
+Create a new immutable revision.
+Increment incident version and current revision number.
+Preserve previous revisions and originating report review version.
 
-Amendment and resolution requests include the expected incident version.
-Lock and refresh the incident before checking that version.
+Require authentication, allowed Origin and session-bound CSRF token.
+Recheck current account and role permissions in the transaction.
 
-Only active incidents may be amended or resolved.
-Reject stale versions and changes to resolved incidents with conflicts.
+## Resolution
+
+Resolution requires expected incident version and incidents.resolve.
+
+Only active incidents can be resolved.
 No reopening workflow is implemented.
 
-Amendment creates a new approved revision, increments incident version
-and selects the new current revision atomically with its audit event.
+Record actor, reason, decision time and effective resolution time.
 
-Resolution records actor, reason, decision time and effective resolution time.
-Decision time and operational effective time are separate fields.
+Decision time and operational effective time are separate.
 
-Resolution increments incident version without creating a replacement revision.
-It preserves the selected revision and previous audit history.
-
-Neither operation changes the originating report's completed review version.
-
-Require valid authentication, allowed Origin and session-bound CSRF token.
-Recheck current staff account and role permissions in the business transaction.
-
-Reject decision clocks earlier than incident creation or current verification.
-
-Resolution effective time cannot be later than the decision clock or earlier
+Effective resolution cannot be later than the decision clock or earlier
 than the current revision's effective start.
+Backdating within these bounds is permitted.
 
-Backdating within those bounds is permitted.
+Reject decision clocks earlier than incident creation/current verification.
 
-The disruption feature must end an incident's effect at its effective
-resolution time. Recording resolution does not itself implement journey
-effect calculation.
+Resolution increments incident version without replacing the revision.
+
+Preserve previous facts and audit history.
+
+The disruption feature must later end applicable effects at the effective
+resolution time. Recording resolution does not implement that calculation.
 
 ## Transactions
 
-The application service owns each business transaction.
+Application services own business transactions.
+Repositories use the supplied session and do not independently commit.
 
-Verification writes report decision, incident, initial revision and audit
-atomically. A failure rolls back the complete operation.
+Verification atomically writes decision, incident, revision and audit.
+Rejection atomically writes decision and audit without an incident.
+Amendment atomically writes revision, incident changes and audit.
+Resolution atomically writes lifecycle state and audit.
 
-Rejection writes report decision and audit atomically.
-It must not create an incident.
+Audit insertion failure rolls back the associated business operation.
 
-Amendment and resolution update lifecycle state, versions and audit history
-in one transaction.
+Authentication transactions remain separate.
+A business failure does not imply authentication activity was rolled back.
 
-Audit insertion failure must roll back the associated lifecycle change.
+Submission counters are also committed separately from report creation.
 
-Repositories use the supplied session and do not commit independently.
+## Immutable history
 
-Keep authentication transactions separate from incident business transactions.
-A failed decision does not imply authentication activity was rolled back.
+Audit and revision storage have no ordinary update or delete operation.
 
-Submission uses separate counter and report transactions.
-This preserves submission limits when report creation fails.
+Migration-installed database triggers reject updates, deletes and truncation.
+Transaction rollback remains supported.
+
+These protections apply to ordinary database writes.
+Privileged administration and schema changes require operational controls.
 
 ## Protected audit history
 
@@ -277,174 +252,174 @@ Expose:
 
 GET /api/v1/staff/reports/{report_id}/audit
 
-Require audit.read in the HTTP dependency and current-staff service policy.
+Require audit.read in the dependency and current-staff service policy.
 
 Return explicit event fields:
 
 - Event, report, incident and revision references.
-- Authenticated actor.
-- Action and reason.
-- Request ID.
-- Resulting report and incident versions.
+- Actor, action and reason.
+- Request ID and resulting versions.
 - Occurrence time.
 
-These are private management fields, not a public incident contract.
+These are private management fields.
 
-Include rejected-report history even when no incident was created.
-A pending report may have empty history.
-A missing report returns 404.
+Include rejected-report history even without an incident.
+Pending reports may have empty history.
+Missing reports return 404.
 
 Order by occurrence time and event ID.
-Event ID provides a stable pagination tie-breaker, not causal ordering
+Event ID breaks ties for pagination; it is not causal ordering
 when timestamps are equal.
 
-Use limits from 1 through 100 and offsets from 0 through 10000.
-Defaults are limit 20 and offset 0.
+Default limit/offset are 20/0.
+Bounds are limit 1–100 and offset 0–10000.
 
-Successful responses are non-cacheable.
+Successful responses use Cache-Control: no-store.
+Reads do not change incident/report business state.
+Authentication may independently update session activity.
 
-Reading history does not alter report or incident business state.
-Authentication may update session activity independently.
+## Public incident responses
 
-## Public responses
+Expose:
 
-Expose approved public fields only.
+- GET /api/v1/incidents?run_id={run_id}
+- GET /api/v1/incidents/{incident_id}
 
-Exclude submitter identity, private review notes, verification reasons
-and unapproved narrative.
+Select incidents linked to verified reports and their current approved revision.
 
-Pending and rejected reports are not public operational evidence.
+Return explicit public fields:
 
-Return incident and approved revision references with verified disruption
-information, together with relevant source references.
+- Incident ID and version.
+- Revision ID and number.
+- Lifecycle status.
+- Approved run and scope.
+- Approved impact and estimated delay where applicable.
+- Effective interval and approved public summary.
+- Current revision verification time.
+- Effective resolution time.
+- Timetable source reference.
 
-A pending receipt confirms receipt only.
-It does not claim that a disruption is verified.
+Exclude passenger narrative, submitting/reviewing staff identity,
+private evidence basis, decision reasons and audit request IDs.
 
-Protected queue, decision and audit responses do not replace the planned
-public incident responses.
+Pending and rejected reports are not public incident evidence.
 
-Public incident responses remain a subsequent implementation stage.
+Run-based listings require run_id and use bounded pagination.
+They include approved active and resolved incidents.
+Unknown runs return an empty list.
+Missing incident details return 404.
+
+Active lifecycle state alone does not establish current applicability.
+Effective intervals and resolution must be considered by the disruption feature.
+
+The timetable source reference identifies schedule provenance.
+It is not proof of an incident or a live railway update.
+
+Successful public reads use Cache-Control: no-store.
+
+## Frontend contracts
+
+Provide passenger reporting and permission-aware staff management panels.
+
+Passenger forms collect narrative, title and Sri Lanka observation time.
+The current form does not expose all optional API scope hints.
+
+Check current staff session before submission and include CSRF when applicable.
+Do not automatically retry an uncertain submission.
+
+Staff review uses displayed report version and independently approved facts.
+Refresh the queue after confirmed decisions.
+
+Lifecycle forms load the current public approved revision and its incident version.
+They do not retrieve private evidence basis.
+Amendments require staff to enter a fresh evidence basis.
+
+Refresh after confirmed lifecycle changes.
+If the change succeeds but refresh fails, preserve the success message.
+
+After a conflict or uncertain mutation, require reload before another decision.
+Do not automatically replay mutations.
+
+Hide controls without the corresponding permission.
+The server remains the authorization boundary.
+
+Abort pending requests when panels unmount.
+Do not persist credentials or CSRF state in localStorage.
+
+Audit history is visible only to permitted staff and loads on request.
 
 ## Journey integration
 
 Preserve original scheduled timestamps.
 
-Represent estimated timestamps separately with their evidence basis.
+Represent future estimated timestamps separately with evidence references.
 
-Apply segment delays to relevant downstream stops.
-Cancelled runs are not feasible alternatives.
+The disruption feature must handle:
 
-Use a documented rule for overlapping effects rather than blindly
-adding reported delays.
+- Dated-run and segment matching.
+- Effective-time and resolution boundaries.
+- Downstream delays.
+- Cancellation and restriction eligibility.
+- Overlapping-effect rules.
+- Feasible alternatives.
+- Affected-journey refresh.
 
-Consider resolution and effective-time boundaries when determining
-whether an incident affects a journey.
-
-Refresh affected journey views after verification, edits and resolution.
-
-Implement journey impact calculation in the subsequent disruption feature.
-
-At this checkpoint, neither unverified reports nor verified incident records
-change journey-result calculations.
-
-## Module boundaries
-
-Separate models, schemas, repositories, services, policies and routes.
-
-Staff authentication belongs to the identity module.
-Journey impact calculation uses an explicit application interface.
-
-Audit storage has no ordinary application update or delete operation.
-
-Database triggers reject updates, deletes and truncation of incident
-revisions and audit events. Transaction rollback remains supported.
-
-Create additional files only when their responsibilities are implemented.
+At this checkpoint, reports and verified incidents do not change journey results.
 
 ## Validation
 
-Implemented validation covers:
+Validated behavior includes:
 
-- Submission rejects server-owned review and approval fields.
-- Observation timestamps require a timezone and cannot be in the future.
-- Invalid run, station and segment hints are rejected.
-- Cancelled and restricted runs can still be reported.
-- Identified staff submitters cannot review their own reports.
-- Missing, expired or revoked sessions are denied on protected operations.
-- Staff without required permission are denied.
-- Disabled accounts and removed reviewer roles cannot use earlier snapshots.
-- Staff-cookie submissions and mutations require CSRF protection.
-- Missing or untrusted browser origins are rejected.
-- Report limits remain separate from login limits.
-- Concurrent submissions respect the configured admission limit.
-- Failed report creation preserves committed attempt counters.
-- Cleanup preserves current windows and obeys its batch limit.
-- Cleanup changes roll back with the caller's transaction.
-- The queue returns pending reports with bounded pagination and stable ordering.
-- Queue reads do not change report state.
-- Concurrent review permits one decision and one version conflict.
-- Failed verification/rejection leaves no partial business decision or audit.
-- Audit events use authenticated actors and server-generated request IDs.
-- Amendments create new revisions and preserve earlier facts.
-- Resolution preserves the approved revision and records its effective time.
-- Invalid lifecycle timestamps and scope references are rejected.
-- Resolved incidents reject further lifecycle changes.
-- Audit failure rolls back amendment and resolution.
-- Lifecycle races permit one successful change and one conflict.
-- Audit access requires audit.read.
-- Audit pagination, response fields and missing-report behavior are tested.
-- Revision/audit updates, deletes and truncation are rejected.
+- Submission validation, server-owned-field rejection and scope checks.
+- Anonymous versus staff-cookie submission.
+- Login/report limits remain separate.
+- Concurrent admission and transactional cleanup.
+- Protected queue pagination and ordering.
+- Staff authentication, current permissions and self-review prevention.
+- Version conflicts and four review/lifecycle race combinations.
+- Atomic decisions and rollback on audit failure.
+- Preserved approved revisions.
+- Resolution bounds and rejection of further changes.
+- Audit allowlists, pagination and permissions.
+- Public current-revision selection and private-field exclusion.
+- History update/delete/truncate rejection.
+- Passenger, review, audit and lifecycle component behavior.
+- Cancellation, duplicate prevention and reload after conflicts.
+- Full lifecycle and rejection API scenarios, each repeated twice.
+- Unchanged scheduled run-stop timestamps across lifecycle changes.
 
-Remaining public-response and disruption validation includes:
-
-- Public responses omit private fields.
-- Pending and rejected claims never become public operational evidence.
-- Off-route and out-of-window incidents have no journey effect.
-- Resolution ends journey effects at the effective resolution time.
-- Journey views refresh after operational changes.
-
-These remaining items are requirements, not claims of completed integration.
+Remaining release/disruption validation includes browser automation,
+journey impact boundaries, affected-journey refresh, responsive/accessibility
+review and two release demonstrations from reset fixtures.
 
 ## Implementation checkpoint
 
 As of 2026-10-18:
 
-- Database models, constraints and immutable-history protections are validated.
-- Passenger submission, separate rate limits and cleanup are implemented.
-- Protected queue and verify/reject endpoints are implemented.
-- Amendments and resolution are implemented with transactional audit writes.
-- Protected report audit history is implemented.
-- Review and lifecycle expected-version conflicts are validated.
-- Audit failures roll back the associated business operations.
-- Four review/lifecycle concurrency cases are validated.
-- Complete backend suite: 566 passed without skips.
-- Stage 3 is committed locally as 71bc123.
-- Stage 4 checkpoint commit remains pending.
-- Public incident responses and passenger/staff interfaces remain pending.
-- Journey disruption integration belongs to the subsequent feature.
-- Latest branch GitHub CI has not yet been verified.
+- Incident-reporting stages 1–6 implemented and pushed through c36ae1a.
+- Stage 6 browser workflow manually verified.
+- Backend: 585 tests passed without skips.
+- Frontend: 122 tests passed.
+- Four repeatable complete API scenario cases passed.
+- Stage 7 finalization and branch CI verification remain in progress.
+- Checkbox confirmation layout is deferred.
+- Journey impact integration remains for the disruption feature.
+- No incident-reporting merge into main has been performed.
 
-Concurrency tests use independent transactions in temporary schemas created
-from model metadata and remove those schemas afterward.
+Concurrency fixtures use temporary schemas built from metadata.
+Migration-installed triggers are tested separately.
 
-Migration-installed history triggers are tested separately.
-
-Acceptance of this decision does not mean every workflow is implemented.
+Repeated API fixtures are not browser automation or release reset-fixture runs.
 
 ## Consequences
 
-This requires more records and workflow code than a single status table.
+This requires more records and workflows than a single status table.
 
-It preserves accountable decisions and supports disruption handling
-without treating passenger claims as verified facts.
+It preserves accountable decisions and avoids presenting passenger claims
+as verified operational facts.
 
-Anonymous reporting does not establish submitter identity.
-Person-level self-review prevention cannot be guaranteed for reports
-without recorded identity.
+Anonymous reporting cannot guarantee person-level self-review prevention.
 
-Database immutability protects ordinary application writes.
-Privileged administration and schema changes require separate controls.
+Record UUID lookup is functional but remains a usability limitation.
 
-The pilot remains a demonstration and does not publish official
-railway announcements.
+The pilot is a demonstration and does not publish official railway announcements.
