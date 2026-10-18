@@ -443,3 +443,60 @@ button:disabled {
   margin-inline-start: 0;
   overflow-wrap: anywhere;
 }
+
+.staff-report-queue {
+  margin-block-start: 2rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #cbd5e1;
+}
+
+.pending-report-list {
+  display: grid;
+  gap: 1.25rem;
+  padding-inline-start: 1.5rem;
+}
+
+.pending-report-list > li {
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.pending-report-list dl {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.pending-report-list dt {
+  font-weight: 600;
+}
+
+.pending-report-list dd {
+  margin-inline-start: 0;
+}
+
+.report-narrative {
+  white-space: pre-wrap;
+}
+
+.report-field select {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: 0.7rem;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+.review-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.review-confirmation input {
+  margin-block-start: 0.25rem;
+  flex: 0 0 auto;
+}
