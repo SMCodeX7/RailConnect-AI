@@ -500,3 +500,35 @@ button:disabled {
   margin-block-start: 0.25rem;
   flex: 0 0 auto;
 }
+
+.incident-audit-panel {
+  margin-block-start: 2rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #cbd5e1;
+}
+
+.incident-audit-list {
+  display: grid;
+  gap: 1rem;
+  padding-inline-start: 1.5rem;
+}
+
+.incident-audit-list > li {
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.incident-audit-list dl {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.incident-audit-list dt {
+  font-weight: 600;
+}
+
+.incident-audit-list dd {
+  margin-inline-start: 0;
+}

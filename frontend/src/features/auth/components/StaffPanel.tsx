@@ -2,6 +2,7 @@ import { StaffReportQueue } from '../../incidents/components/StaffReportQueue'
 import { useStaffSession } from '../hooks/useStaffSession'
 import type { StaffPermission } from '../types'
 import { StaffLoginForm } from './StaffLoginForm'
+import { IncidentAuditPanel } from '../../incidents/components/IncidentAuditPanel'
 
 const permissionLabels: Record<StaffPermission, string> = {
   'reports.read': 'View passenger reports',
@@ -134,6 +135,13 @@ export function StaffPanel() {
             <StaffReportQueue
               key={session.actor.user_id}
               session={session}
+              onSessionInvalid={refresh}
+            />
+          )}
+
+          {!busy && hasPermission('audit.read') && (
+            <IncidentAuditPanel
+              key={session.actor.user_id}
               onSessionInvalid={refresh}
             />
           )}
