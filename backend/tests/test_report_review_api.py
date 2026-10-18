@@ -1644,3 +1644,234 @@ def test_missing_public_incident_returns_safe_not_found(
     payload = response.json()
     assert payload["code"] == "NOT_FOUND"
     assert "request_id" in payload
+
+
+@pytest.mark.parametrize("repetition", [1, 2])
+def test_repeatable_synthetic_incident_lifecycle_scenario(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+    repetition: int,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+
+    schedule_query = (
+        select(
+            RunStop.stop_sequence,
+            RunStop.scheduled_arrival_at,
+            RunStop.scheduled_departure_at,
+        )
+        .where(RunStop.run_id == context.run_id)
+        .order_by(RunStop.stop_sequence)
+    )
+    original_schedule = context.database.execute(schedule_query).all()
+
+    headers = sign_in(context)
+
+    verification_input = verify_payload(context)
+    verification_input["reason"] = f"Synthetic lifecycle scenario repetition {repetition}."
+
+    verified = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/verify",
+        headers=headers,
+        json=verification_input,
+    )
+
+    assert verified.status_code == 200
+    verified_payload = verified.json()
+    incident_id = verified_payload["incident_id"]
+    original_revision_id = verified_payload["revision_id"]
+
+    assert verified_payload["report_version"] == 2
+    assert verified_payload["incident_version"] == 1
+
+    amendment_input = amendment_payload(context)
+
+    amended = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/amend",
+        headers=headers,
+        json=amendment_input,
+    )
+
+    assert amended.status_code == 200
+    amended_payload = amended.json()
+
+    assert amended_payload["incident_version"] == 2
+    assert amended_payload["current_revision_number"] == 2
+    assert amended_payload["current_revision_id"] != original_revision_id
+
+    resolution_input = resolution_payload()
+    resolution_input["expected_version"] = 2
+
+    resolved = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/resolve",
+        headers=headers,
+        json=resolution_input,
+    )
+
+    assert resolved.status_code == 200
+    resolved_payload = resolved.json()
+
+    assert resolved_payload["status"] == "resolved"
+    assert resolved_payload["incident_version"] == 3
+    assert resolved_payload["current_revision_number"] == 2
+    assert resolved_payload["current_revision_id"] == amended_payload["current_revision_id"]
+
+    audit = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert audit.status_code == 200
+    assert audit.headers["Cache-Control"] == "no-store"
+    audit_payload = audit.json()
+    assert audit_payload["total"] == 3
+
+    events = {item["action"]: item for item in audit_payload["items"]}
+
+    assert set(events) == {
+        "report_verified",
+        "incident_revised",
+        "incident_resolved",
+    }
+    assert events["report_verified"]["incident_version"] == 1
+    assert events["incident_revised"]["incident_version"] == 2
+    assert events["incident_resolved"]["incident_version"] == 3
+
+    assert events["report_verified"]["revision_id"] == original_revision_id
+    assert events["incident_revised"]["revision_id"] == amended_payload["current_revision_id"]
+    assert events["incident_resolved"]["revision_id"] == amended_payload["current_revision_id"]
+
+    for item in audit_payload["items"]:
+        assert item["actor_id"] == str(context.user.id)
+        assert item["report_id"] == str(context.report_id)
+        assert item["incident_id"] == incident_id
+        assert item["report_version"] == 2
+        assert item["request_id"]
+
+    context.client.cookies.clear()
+
+    public_detail = context.client.get(f"/api/v1/incidents/{incident_id}")
+
+    assert public_detail.status_code == 200
+    public_payload = public_detail.json()
+
+    assert public_payload["status"] == "resolved"
+    assert public_payload["incident_version"] == 3
+    assert public_payload["revision_number"] == 2
+    assert public_payload["estimated_delay_minutes"] == 30
+    assert public_payload["resolution_effective_at"] is not None
+
+    private_fields = {
+        "narrative",
+        "submitted_by_user_id",
+        "reviewed_by_id",
+        "review_reason",
+        "verification_reason",
+        "evidence_basis",
+        "actor_id",
+        "verified_by_id",
+        "resolved_by_id",
+        "resolution_reason",
+        "request_id",
+    }
+    assert private_fields.isdisjoint(public_payload)
+
+    public_list = context.client.get(
+        "/api/v1/incidents",
+        params={"run_id": str(context.run_id)},
+    )
+
+    assert public_list.status_code == 200
+    matching_items = [
+        item for item in public_list.json()["items"] if item["incident_id"] == incident_id
+    ]
+    assert matching_items == [public_payload]
+
+    context.database.expire_all()
+
+    stored_report = context.database.get(
+        IncidentReport,
+        context.report_id,
+    )
+    assert stored_report is not None
+    assert stored_report.status == "verified"
+    assert stored_report.version == 2
+
+    revisions = context.database.scalars(
+        select(IncidentRevision)
+        .where(IncidentRevision.incident_id == UUID(incident_id))
+        .order_by(IncidentRevision.revision_number)
+    ).all()
+
+    assert [revision.revision_number for revision in revisions] == [1, 2]
+    assert [revision.estimated_delay_minutes for revision in revisions] == [15, 30]
+    assert str(revisions[0].id) == original_revision_id
+
+    assert context.database.execute(schedule_query).all() == original_schedule
+
+
+@pytest.mark.parametrize("repetition", [1, 2])
+def test_repeatable_synthetic_rejection_scenario(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+    repetition: int,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    headers = sign_in(context)
+
+    rejected = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/reject",
+        headers=headers,
+        json={
+            "expected_version": 1,
+            "reason": (f"Insufficient synthetic evidence, repetition {repetition}."),
+        },
+    )
+
+    assert rejected.status_code == 200
+    decision = rejected.json()
+
+    assert decision["status"] == "rejected"
+    assert decision["report_version"] == 2
+    assert decision["incident_id"] is None
+    assert decision["revision_id"] is None
+    assert decision["incident_version"] is None
+
+    audit = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert audit.status_code == 200
+    audit_payload = audit.json()
+    assert audit_payload["total"] == 1
+
+    item = audit_payload["items"][0]
+    assert item["action"] == "report_rejected"
+    assert item["report_version"] == 2
+    assert item["actor_id"] == str(context.user.id)
+    assert item["incident_id"] is None
+    assert item["revision_id"] is None
+    assert item["incident_version"] is None
+
+    context.client.cookies.clear()
+
+    public_list = context.client.get(
+        "/api/v1/incidents",
+        params={"run_id": str(context.run_id)},
+    )
+
+    assert public_list.status_code == 200
+    assert public_list.json()["items"] == []
+    assert public_list.json()["total"] == 0
+
+    context.database.expire_all()
+
+    stored_report = context.database.get(
+        IncidentReport,
+        context.report_id,
+    )
+    assert stored_report is not None
+    assert stored_report.status == "rejected"
+    assert stored_report.version == 2
+
+    linked_incident = context.database.scalar(
+        select(Incident).where(Incident.originating_report_id == context.report_id)
+    )
+    assert linked_incident is None
