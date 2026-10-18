@@ -372,3 +372,177 @@ button:disabled {
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
 }
+
+.passenger-report-panel {
+  margin-block-start: 1.5rem;
+}
+
+.report-fields {
+  display: grid;
+  gap: 1rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+.report-fields legend {
+  padding-inline: 0.35rem;
+  font-weight: 600;
+}
+
+.report-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.report-field label {
+  font-weight: 600;
+}
+
+.report-field input,
+.report-field textarea {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: 0.7rem;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+.report-field textarea {
+  resize: vertical;
+}
+
+.report-field .muted {
+  margin: 0;
+}
+
+.report-fields button {
+  justify-self: start;
+}
+
+.report-receipt {
+  padding: 1rem;
+  border: 1px solid #64748b;
+  border-radius: 0.75rem;
+}
+
+.report-receipt dl {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.report-receipt dt {
+  font-weight: 600;
+}
+
+.report-receipt dd {
+  margin-inline-start: 0;
+  overflow-wrap: anywhere;
+}
+
+.staff-report-queue {
+  margin-block-start: 2rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #cbd5e1;
+}
+
+.pending-report-list {
+  display: grid;
+  gap: 1.25rem;
+  padding-inline-start: 1.5rem;
+}
+
+.pending-report-list > li {
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.pending-report-list dl {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.pending-report-list dt {
+  font-weight: 600;
+}
+
+.pending-report-list dd {
+  margin-inline-start: 0;
+}
+
+.report-narrative {
+  white-space: pre-wrap;
+}
+
+.report-field select {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: 0.7rem;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+.review-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.review-confirmation input {
+  margin-block-start: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.incident-audit-panel {
+  margin-block-start: 2rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #cbd5e1;
+}
+
+.incident-audit-list {
+  display: grid;
+  gap: 1rem;
+  padding-inline-start: 1.5rem;
+}
+
+.incident-audit-list > li {
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.incident-audit-list dl {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.incident-audit-list dt {
+  font-weight: 600;
+}
+
+.incident-audit-list dd {
+  margin-inline-start: 0;
+}
+
+.incident-lifecycle-panel {
+  margin-block-start: 2rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #cbd5e1;
+}
+
+.incident-lifecycle-panel dl {
+  overflow-wrap: anywhere;
+}
+
+.incident-lifecycle-panel form {
+  margin-block: 1rem;
+}

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 
 import { StaffPanel } from './features/auth/components/StaffPanel'
+import { PassengerReportForm } from './features/incidents/components/PassengerReportForm'
 import { JourneyStationPicker } from './features/journeys/components/JourneyStationPicker'
 
-type Page = 'journeys' | 'staff'
+type Page = 'journeys' | 'report' | 'staff'
 
 export default function App() {
   const [page, setPage] = useState<Page>('journeys')
@@ -32,6 +33,14 @@ export default function App() {
 
         <button
           type="button"
+          aria-pressed={page === 'report'}
+          onClick={() => setPage('report')}
+        >
+          Report a disruption
+        </button>
+
+        <button
+          type="button"
           aria-pressed={page === 'staff'}
           onClick={() => setPage('staff')}
         >
@@ -39,7 +48,9 @@ export default function App() {
         </button>
       </nav>
 
-      {page === 'journeys' ? <JourneyStationPicker /> : <StaffPanel />}
+      {page === 'journeys' && <JourneyStationPicker />}
+      {page === 'report' && <PassengerReportForm />}
+      {page === 'staff' && <StaffPanel />}
     </main>
   )
 }

@@ -2,15 +2,19 @@
 
 ## Current checkpoint
 
-- Updated: 2026-10-14.
+- Updated: 2026-10-18.
 - Release target: v1.0 portfolio pilot, in progress.
-- Branch: feat/staff-identity.
-- Foundation, initial journey search and journey-details work merged into main.
-- Backend staff authentication checkpoint committed.
-- Identity cleanup, concurrency verification and staff frontend completed locally.
-- Latest changes are ready for commit after documentation review.
-- Latest staff-identity GitHub CI and merge remain pending.
-- Handbook alignment documents remain on feat/incident-reporting.
+- Branch: feat/incident-reporting.
+- Foundation, journey search/details and staff identity merged into main.
+- Incident-reporting stages 1–6 implemented, committed and pushed.
+- Last confirmed pushed implementation commit: c36ae1a.
+- Stage 6 manual workflow verification completed.
+- Complete backend suite: 585 passed without skips.
+- Complete frontend suite: 122 passed.
+- Stage 7 repeatable API scenarios validated.
+- Stage 7 documentation, final Git review and CI verification remain in progress.
+- No incident-reporting merge into main has been performed.
+- Checkbox confirmation layout is deferred to the final UI review.
 
 ## Completed foundation
 
@@ -18,7 +22,7 @@
 - Recorded the modular-monolith architecture decision.
 - Configured ignore rules, backend packaging and dependency lockfiles.
 - Added validated settings and environment examples.
-- Added the app factory, liveness and database readiness endpoints.
+- Added an app factory, liveness and database readiness endpoints.
 - Added server-generated request IDs and consistent error responses.
 - Added structured request logging.
 - Added application-managed database sessions and shutdown cleanup.
@@ -31,8 +35,7 @@
 
 ## Completed journeys and timetable provenance
 
-- Added direct journey search and its frontend.
-- Added travel-date selection, results and pagination.
+- Added direct journey search, travel dates, results and pagination.
 - Cancelled outdated requests and cleared results after input changes.
 - Added validated, repeatable demonstration timetable seeding.
 - Added persisted dated service runs and scheduled run stops.
@@ -57,7 +60,7 @@
 - Added import and provenance regression tests.
 - Added timetable preview to CI.
 - Standardized processed JSON line endings through .gitattributes.
-- Documented the dataset in docs/data-card.md.
+- Documented dataset coverage and limitations in docs/data-card.md.
 - Recorded dated-run and provenance decisions in ADR 0004.
 - Documented Windows, Linux and macOS setup differences.
 
@@ -66,171 +69,327 @@
 - Recorded identity and session decisions in ADR 0005.
 - Added individual users, roles and role assignments.
 - Added Argon2id password hashing and verification.
-- Added interactive staff provisioning without default credentials.
+- Added interactive provisioning without default credentials.
 - Added hashed opaque session tokens and separate CSRF tokens.
-- Added absolute and idle session expiry.
-- Added session revocation and account-version invalidation.
-- Added explicit permission mappings and denial for unknown roles.
-- Rechecked roles and permissions during session authentication.
+- Added absolute and idle expiry, revocation and account-version invalidation.
+- Added explicit permissions and denial for unknown roles.
+- Rechecked current roles and permissions during authentication.
 - Added database-backed client and account login limits.
-- Committed login attempt counters before credential rejection.
-- Rechecked account state before creating a login session.
+- Committed attempt counters independently of credential rejection.
+- Rechecked account state before creating login sessions.
 - Added login, logout and current-session endpoints.
 - Added host-only HTTP-only cookies and production security validation.
-- Added origin checks and CSRF protection for authenticated mutations.
-- Added generic authentication errors.
-- Added non-cacheable session responses and frontend API requests.
+- Added origin and CSRF protection for authenticated mutations.
+- Added generic errors and non-cacheable session responses.
 - Added provisioning, session, login and authorization regression tests.
-- Added read-only cleanup preview and explicit transactional deletion.
-- Added retention periods and bounded cleanup batches.
-- Added cleanup preservation and rollback tests.
-- Verified concurrent client and account login limits.
-- Added the staff-access section and public journey navigation.
-- Added session restoration, login, logout and explicit refresh.
+- Added cleanup preview, retention periods and bounded transactional deletion.
+- Verified cleanup preservation, rollback and concurrent login limits.
+- Added staff navigation, restoration, login, logout and explicit refresh.
 - Displayed roles, permissions and absolute expiry.
-- Cleared password input after submission.
-- Added visible expiry and unconfirmed-logout handling.
-- Added cancellation when the staff panel unmounts.
-- Added shared HTTP, authentication API, staff-panel and navigation tests.
-- Provisioned local controller accounts interactively.
-- Verified the staff workflow against the running backend.
+- Cleared submitted passwords and handled expiry/unconfirmed logout.
+- Cancelled requests when staff panels unmount.
+- Added shared HTTP, authentication, panel and navigation tests.
+- Manually verified the staff workflow against the running backend.
+
+## Incident-reporting implementation
+
+### Stage 1: database models and protections
+
+- Added separate report, incident, revision and audit records.
+- Added review, resolution, scope and impact constraints.
+- Added dated-run/segment references and unique revision numbers.
+- Added triggers rejecting revision/audit updates, deletes and truncation.
+- Verified immutable-history protections and transaction rollback.
+- Reconciled ADR 0003 and the roadmap.
+
+### Stage 2: passenger submission
+
+- Added schemas rejecting server-owned review and approval fields.
+- Validated hints against prepared runs, stops and active stations.
+- Allowed reports concerning cancelled and restricted runs.
+- Added server-forced pending state and version 1.
+- Added safe receipts excluding narrative and private review fields.
+- Required aware observations and rejected future observations.
+- Derived authenticated staff submitter identity on the server.
+- Required staff-cookie authentication and CSRF protection.
+- Rejected invalid staff cookies rather than becoming anonymous.
+- Added origin and JSON content-type checks.
+- Added separate atomic PostgreSQL submission counters.
+- Preserved committed counters when report creation fails.
+- Verified concurrent report-limit admission.
+- Added report-counter cleanup preview and bounded deletion.
+- Fixed identity/report cleanup to delete selected, locked keys only.
+- Backend checkpoint: 431 passed.
+
+### Stage 3: protected staff review
+
+- Added a pending queue with bounded pagination and stable ordering.
+- Required reports.read for queue access.
+- Added explicit protected response fields.
+- Added strict expected-version verification/rejection schemas.
+- Required independently approved scope, impact, interval and evidence basis.
+- Required reports.review, allowed Origin and session-bound CSRF token.
+- Rechecked current reviewer account and role permissions.
+- Prevented identified staff self-review.
+- Locked and refreshed reports before decisions.
+- Rejected stale versions and already-reviewed reports.
+- Verification atomically creates decision, incident, revision and audit.
+- Rejection atomically creates decision and audit without an incident.
+- Recorded server-derived actors, timestamps and request IDs.
+- Verified complete rollback when audit insertion fails.
+- Verified disabled accounts and removed roles invalidate earlier snapshots.
+- Verified simultaneous verification/rejection allows one winner and one conflict.
+- Backend checkpoint: 512 passed.
+- Commit: 71bc123.
+
+### Stage 4: incident lifecycle and audit history
+
+- Added versioned amendment and resolution APIs.
+- Required incidents.edit for amendments and incidents.resolve for resolution.
+- Required authentication, allowed Origin and session-bound CSRF tokens.
+- Rechecked current account and role permissions inside lifecycle transactions.
+- Locked incidents and rejected stale versions or changes to resolved incidents.
+- Amendments create a new approved revision and increment incident version.
+- Preserved earlier revisions and originating report review version.
+- Resolution records actor, reason, decision time and effective resolution time.
+- Rejected future resolution times and times before the current revision starts.
+- Added atomic lifecycle audit writes.
+- Verified rollback when lifecycle audit insertion fails.
+- Added protected report audit history requiring audit.read.
+- Added explicit fields, bounded pagination and no-store responses.
+- Included verification, rejection, amendment and resolution history.
+- Verified audit authentication and permission restrictions.
+- Verified invalid scope leaves incident history unchanged.
+- Verified three lifecycle race combinations.
+- Backend checkpoint: 566 passed.
+
+### Stage 5: public incident responses
+
+- Added GET /api/v1/incidents with required run_id and bounded pagination.
+- Added GET /api/v1/incidents/{incident_id}.
+- Selected only incidents linked to verified reports and their current revision.
+- Returned incident/revision versions, approved facts and timetable source reference.
+- Returned lifecycle status and effective resolution time.
+- Excluded private narrative, evidence basis, reasons and actor identities.
+- Excluded pending/rejected reports from public incident evidence.
+- Included approved active and resolved incidents in run-based listings.
+- Verified current revision selection after amendment.
+- Verified resolution preserves the approved revision.
+- Added public response, pagination and validation tests.
+- Backend checkpoint: 581 passed.
+- Commit: a16cfbb.
+
+### Stage 6: passenger and staff interfaces
+
+- Added public reporting navigation and form.
+- Converted Sri Lanka observation times to UTC.
+- Added validation, duplicate-submission prevention and pending receipts.
+- Added current-session checks and staff CSRF handling before submission.
+- Preserved input after failures and avoided automatic submission retries.
+- Added protected queue loading, pagination, errors and retry.
+- Added verification and rejection forms with explicit approved facts.
+- Added independent-review confirmation and expected-version submission.
+- Reloaded the queue after confirmed decisions.
+- Blocked decisions after conflicts until successful reload.
+- Added amendment and resolution interfaces.
+- Loaded current approved incident state before lifecycle mutations.
+- Required a fresh evidence basis for amendments.
+- Used loaded incident versions rather than manually entered versions.
+- Refreshed incident state after successful changes.
+- Preserved confirmed success if subsequent refresh fails.
+- Added administrator-only audit history with pagination and error handling.
+- Added permission-aware panels and session-invalid handling.
+- Added request cancellation on unmount.
+- Fixed duplicate React keys across staff panels.
+- Added passenger, queue, lifecycle and audit interaction tests.
+- Frontend checkpoint: 122 passed.
+- Latest implementation commit: c36ae1a.
+
+### Stage 7: final integration and documentation
+
+Completed locally:
+
+- Reviewed the existing CI workflow and test execution.
+- Added complete synthetic lifecycle and rejection API scenarios.
+- Parameterized each scenario for two isolated repetitions.
+- Verified original revisions and scheduled run-stop times are preserved.
+- Verified lifecycle audit references and resulting versions.
+- Verified signed-out public responses exclude private fields.
+- Verified rejection creates no linked incident.
+- Focused repeatable scenario tests: 4 passed.
+- Complete backend suite: 585 passed.
+
+Remaining:
+
+- Commit final scenario/documentation changes if not already committed.
+- Complete final Git review and push the feature branch.
+- Verify GitHub backend and frontend CI for the final pushed commit.
+- Prepare a reviewable pull request when branch work is complete.
+- Merge only as a separate authorized action after CI passes.
 
 ## Database and demonstration data
 
 - PostgreSQL 17 runs locally through Docker Compose.
-- Database access uses SQLAlchemy and psycopg.
+- SQLAlchemy and psycopg provide database access.
 - Migration d27ced7dc3b1 creates stations.
-- Migration cbaf28463dbe creates train_services and service_stops.
-- Migration 8b4605b4bc60 creates service_runs and run_stops
-  and adds recurring-stop permissions.
-- Migration b9c0a25509af creates source_records and timetable_imports.
-- Migration dfeb4f1c64a4 creates users, roles, user_roles,
-  sessions and login_rate_limits.
-- Current migration head: dfeb4f1c64a4.
+- Migration cbaf28463dbe creates recurring services and stops.
+- Migration 8b4605b4bc60 creates runs/stops and recurring permissions.
+- Migration b9c0a25509af creates source records and import summaries.
+- Migration dfeb4f1c64a4 creates staff identity, sessions and login limits.
+- Migration 5c23c99becea creates incident storage and history protections.
+- Migration af88e86de607 creates report submission limits.
+- Current migration head: af88e86de607.
 - Alembic reports no new upgrade operations.
-- Seeded 30 selected demonstration stations.
-- Station codes beginning with DEMO_ are project identifiers.
-- Timetable data contains 12 fictional patterns and 42 ordered stops.
-- Examples include daily, weekday, weekend, reverse and overnight services.
+- Demonstration dataset: 30 stations, 12 patterns and 42 recurring stops.
 - Timetable validity: 2026-01-01 through 2028-12-31, inclusive.
-- Prepared 70 dated runs for 2026-10-12 through 2026-10-18.
-- Repeated materialization verified 70 existing runs and inserted none.
-- Fourteen service dates were skipped according to operating rules.
-- Search reads prepared runs and does not create them.
-- Run timestamps are stored in UTC and displayed in Asia/Colombo.
-- Timetable source reference: demo-timetable-v1.
-- Metadata is stored in demo_timetable.source.json.
-- Source registration records the exact timetable file SHA-256.
-- Repeated imports preserve source and import-summary identities.
-- Demonstration data is not an official timetable or live service feed.
-
-## Staff identity configuration
-
-- Provisioned passwords contain 15 to 128 characters.
-- Password whitespace is preserved.
-- Initial roles are controller and administrator.
-- Administrator has explicitly mapped permissions, not a blanket bypass.
-- Session absolute lifetime defaults to eight hours.
-- Session idle timeout defaults to thirty minutes.
-- Login-rate window defaults to five minutes.
-- Default limits are 30 attempts per client and 5 per account per window.
-- The browser receives an HTTP-only session cookie.
-- The database stores the session token's SHA-256 hash.
-- CSRF tokens are separate from authentication tokens.
-- Session and CSRF state are not persisted in browser localStorage.
-- Local HTTP development explicitly disables Secure cookies.
-- Production requires Secure cookies and configured HTTPS origins.
-- Default cleanup retention is seven days for expired/revoked sessions
-  and one day for expired login-rate windows.
-- Default cleanup batch size is 500 records per table.
-- Cleanup requires explicit application and is not automatically scheduled.
-- Local account passwords are not recorded in Git.
+- The baseline week 2026-10-12 through 2026-10-18 produces 70 runs
+  and skips 14 nonoperating service/date combinations.
+- Additional dated runs were prepared for the Stage 6 manual check.
+- Search reads explicitly prepared runs and does not create them.
+- Timestamps are stored in UTC and displayed in Asia/Colombo.
+- Source reference: demo-timetable-v1.
+- Source registration records exact file SHA-256.
+- Repeated imports preserve source and summary identities.
+- These schedules and incidents do not represent live railway operations.
 
 ## Current local validation
 
-- Ruff lint passed across source, tests, migrations and scripts.
-- Ruff formatting: 119 files already formatted.
-- mypy passed for 78 source files.
-- Complete backend suite: 310 passed, with no skipped tests.
-- Identity cleanup tests: 14 passed.
-- Concurrent login-limit tests: 2 passed.
-- Current migration head and schema checks passed.
-- Frontend ESLint passed.
-- Frontend TypeScript checking and production build passed.
-- Complete frontend suite: 62 passed across 9 files.
-- Staff-panel tests: 12 passed.
-- Shared HTTP tests: 11 passed.
-- Staff API contract tests: 3 passed.
-- Application navigation tests: 3 passed.
-- Existing journey frontend tests: 33 passed.
-- Manually verified public journey access without staff login.
-- Manually verified generic credential errors and cleared password input.
-- Manually verified successful login and controller permissions.
-- Manually verified session restoration after browser refresh.
-- Manually verified explicit session refresh.
-- Manually verified switching between journey and staff sections.
-- Manually verified logout and remaining signed out after refresh.
-- Latest GitHub CI remains pending.
+- Full backend suite: 585 passed without skips.
+- Full frontend suite: 122 passed across 16 files.
+- Latest complete backend lint and formatting checks passed.
+- Backend formatting checkpoint: 168 files.
+- mypy checkpoint: 112 source files passed.
+- Alembic schema check passed.
+- Stage 7 scenario-test lint and formatting passed.
+- Four new repeatable scenario cases passed.
+- Full backend suite passed after those additions.
+- Git whitespace check passed before these documentation updates.
+- Frontend lint and production build passed.
+- Latest branch CI has not yet been verified.
 
-## Earlier validation
+Focused test groups include:
 
-These are historical checkpoints, not clean-checkout verification of
-every change on the current branch:
+- Incident database constraints: 36 tests.
+- Report review/public/lifecycle/audit API file: 77 tests.
+- Lifecycle schemas: 16 tests.
+- Review and lifecycle concurrency: 4 tests.
+- Passenger form: 9 tests.
+- Staff report queue/review: 13 tests.
+- Incident lifecycle panel: 14 tests.
+- Audit panel: 12 tests.
 
-- Journey-details backend suite: 184 passed.
-- Journey frontend suite: 33 passed.
-- Timetable, source registration and run materialization were repeatable.
-- Manually verified ordered stops, selected segments and source cards.
-- Manually verified inclusive deadlines and overnight arrival dates.
-- Foundation clean-checkout verification passed on Windows.
-- Locked backend and frontend installation passed on that clone.
-- Fresh PostgreSQL migration and repeatable station seeding passed.
-- Foundation verification ran 41 backend and 5 frontend tests.
-- The verification checkout remained clean.
+Focused groups are subsets of the complete suites, not additional tests.
 
-## Current limitations and deferred integration
+Concurrency tests use independent connections and temporary schemas
+created from model metadata. Migration-installed history triggers
+are verified separately by migration-backed immutability tests.
 
-- Timetable schedules and operating patterns are fictional.
-- Search coverage depends on explicitly prepared dated runs.
-- Minute-resolution recurring offsets are retained and documented.
+The four repeated API scenarios use isolated fixtures.
+They are not automated browser tests or two release demonstrations
+from reset fixtures.
+
+## Manual verification
+
+Completed on 2026-10-18:
+
+- Database health, application connection and migration checks.
+- Backend and frontend startup.
+- Station loading through the development proxy.
+- Jaffna to Colombo Fort search for 2026-10-19.
+- Demo Northern Return, 07:00–16:00, duration nine hours.
+- Ordered details, boarding/alighting permissions and source card.
+- Signed-out synthetic passenger submission and pending receipt.
+- Controller verification: incident version 1, revision 1.
+- Amendment to 30-minute synthetic delay: version 2, revision 2.
+- Resolution: version 3, revision 2, further changes unavailable.
+- Administrator audit history containing all three decisions.
+- Controller audit panel restriction.
+- Separate rejection and removal from the pending queue.
+- Rejection audit with no incident or revision references.
+- Signed-out public incident response with approved fields only.
+
+See docs/incident-workflow-check.md for replay instructions.
+
+## Configuration and operational behavior
+
+- Provisioned passwords contain 15–128 characters.
+- Passwords and database credentials are not recorded in Git.
+- Roles are controller and administrator with explicit permission mappings.
+- Session lifetime defaults to eight hours, idle timeout to thirty minutes.
+- Login limits default to 30 client and 5 account attempts per five minutes.
+- Report limits default to 5 client attempts per hour.
+- Report counters are independent of login counters.
+- Authentication uses an HTTP-only cookie; only its hash is stored.
+- Session-bound CSRF tokens are separate from authentication tokens.
+- Session/CSRF state is not persisted in localStorage.
+- Queue, audit and public-list pagination default to 20 items and offset 0.
+- Limits are 1–100; offsets are 0–10000.
+- Approved delays are integer minutes from 1–1440.
+- Cancellation requires whole-run scope.
+- Lifecycle changes require expected incident versions.
+- Resolution increments incident version without replacing the revision.
+- No incident reopening workflow is implemented.
+- Cleanup is bounded, transactional and operator-run.
+- Cleanup scheduling remains a deployment responsibility.
+
+## Limitations and deferred integration
+
+- All timetable patterns and incident scenarios are demonstrations.
+- Search coverage depends on explicitly prepared runs.
+- Recurring offsets remain minute-resolution.
 - Existing service definitions are verified rather than overwritten.
-- Sources are resolved by source_ref rather than a database foreign key.
+- Sources are resolved through source_ref rather than a database foreign key.
 - Source immutability is enforced by the import workflow.
-- Registration time does not establish operational freshness.
-- Restricted-run impact eligibility belongs to the disruption workflow.
-- Demonstration imports require development or test environments.
-- Import execution context currently identifies the command environment,
-  not an authenticated staff actor.
-- Protected staff import access and actor attribution remain pending.
-- Displayed permissions do not implement incident or import workflows.
-- Staff provisioning is an interactive CLI, not public registration.
-- Self-service password recovery and account management are not implemented.
-- Identity cleanup scheduling remains a deployment responsibility.
-- Deployment must configure HTTPS, origins and trusted proxies correctly.
-- Handbook alignment documents must be reconciled from feat/incident-reporting.
-- Latest branch changes still require GitHub CI before merge.
+- Source registration does not establish live freshness.
+- Staff import access and authenticated import attribution remain pending.
+- Staff provisioning remains a CLI; self-service recovery is not implemented.
+- Public incident listings include resolved and future-effective records.
+- Active lifecycle status alone does not establish current journey impact.
+- Verified incidents do not yet alter journey results or scheduled times.
+- Anonymous reporting cannot establish person-level submitter identity.
+- Self-review prevention applies to recorded staff submitters.
+- Management forms currently use explicit record UUIDs.
+- Audit panels refresh on request rather than receiving live updates.
+- Checkbox confirmation layout remains deferred to the UI review.
+- Responsive/accessibility release review remains outstanding.
+- Browser automation, reset-fixture release demonstrations and deployment
+  verification remain separate release requirements.
+- Latest changes require GitHub CI verification before merge.
+
+## Incident-reporting branch stages
+
+1. Models, migrations and constraint validation: complete.
+2. Passenger submission API, limits and cleanup: complete.
+3. Protected queue and report decisions: complete.
+4. Incident lifecycle and audit history: complete.
+5. Public incident responses: complete.
+6. Passenger/staff interfaces and manual verification: complete.
+7. Final integration, documentation and CI verification: in progress.
+
+Approximate branch completion: 95%.
+This is an effort estimate, not overall v1 release completion.
 
 ## Remaining v1 work
 
-- Protected staff management workflows.
 - Authenticated timetable import access and actor attribution.
-- Separate passenger reports and verified incidents.
-- Versioned review, resolution and transactional audit history.
+- Protected timetable management interface.
 - Disruption effects and feasible alternatives.
 - Policy retrieval and ownership-protected passenger assistant.
 - Assistant evaluation and browser workflow tests.
-- Final responsive and accessibility review.
-- Deployment, persistence and recovery verification.
-- Portfolio documentation, demonstration video and release tag.
+- Two complete release demonstrations from reset fixtures.
+- Responsive/accessibility review and checkbox layout correction.
+- Deployment, persistence, restart, backup and restore verification.
+- Cleanup operational procedures or scheduling.
+- Final portfolio documentation, demonstration video and release tag.
 
-Check remaining handbook requirements, including station aliases,
-repository templates, license and OpenAPI compatibility verification,
-before declaring v1 complete.
+Reconcile station aliases, repository templates, license and OpenAPI
+compatibility requirements with the handbook before declaring v1 complete.
 
 ## Next task
 
-Commit and push the completed identity cleanup and staff frontend.
+Finish Stage 7 documentation and final branch review.
+Commit any remaining validated changes and push feat/incident-reporting.
 
-Verify GitHub CI and review the staff-identity pull request before merging.
-Then reconcile the incident-reporting planning documents and implement
-the next feature according to the handbook.
+Verify backend and frontend CI against the final pushed commit.
+
+Keep main unchanged until a separately authorized pull-request merge.

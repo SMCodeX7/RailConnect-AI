@@ -1,3 +1,6 @@
+import { IncidentAuditPanel } from '../../incidents/components/IncidentAuditPanel'
+import { IncidentLifecyclePanel } from '../../incidents/components/IncidentLifecyclePanel'
+import { StaffReportQueue } from '../../incidents/components/StaffReportQueue'
 import { useStaffSession } from '../hooks/useStaffSession'
 import type { StaffPermission } from '../types'
 import { StaffLoginForm } from './StaffLoginForm'
@@ -61,6 +64,7 @@ export function StaffPanel() {
       {status === 'guest' && (
         <>
           <StaffLoginForm busy={busy} onSignIn={signIn} />
+
           <p className="muted">
             Staff accounts are provisioned individually. Contact your
             administrator if you need access.
@@ -111,8 +115,7 @@ export function StaffPanel() {
           </ul>
 
           <p className="muted">
-            Management workflows will be added in the next implementation
-            stages. Each protected action requires server-side authorization.
+            Each protected action requires server-side authorization.
             An inactive session may expire before the time shown above.
           </p>
 
@@ -129,6 +132,33 @@ export function StaffPanel() {
               {busy ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
+
+          {!busy && hasPermission('reports.read') && (
+            <StaffReportQueue
+              key={`reports:${session.actor.user_id}`}
+              session={session}
+              onSessionInvalid={refresh}
+            />
+          )}
+
+          {!busy &&
+            (
+              hasPermission('incidents.edit') ||
+              hasPermission('incidents.resolve')
+            ) && (
+              <IncidentLifecyclePanel
+                key={`lifecycle:${session.actor.user_id}`}
+                session={session}
+                onSessionInvalid={refresh}
+              />
+            )}
+
+          {!busy && hasPermission('audit.read') && (
+            <IncidentAuditPanel
+              key={`audit:${session.actor.user_id}`}
+              onSessionInvalid={refresh}
+            />
+          )}
         </>
       )}
     </section>
