@@ -1418,3 +1418,229 @@ def test_audit_access_is_denied_after_role_assignment_is_removed(
     response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
 
     assert response.status_code == 401
+
+
+def test_public_incident_requires_no_staff_session(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, revision_id, _ = verified_incident(context)
+    context.client.cookies.clear()
+
+    response = context.client.get(f"/api/v1/incidents/{incident_id}")
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+
+    payload = response.json()
+    assert payload["incident_id"] == str(incident_id)
+    assert payload["revision_id"] == str(revision_id)
+    assert payload["run_id"] == str(context.run_id)
+    assert payload["incident_version"] == 1
+    assert payload["revision_number"] == 1
+    assert payload["status"] == "active"
+    assert payload["estimated_delay_minutes"] == 15
+    assert payload["resolution_effective_at"] is None
+
+    assert set(payload) == {
+        "incident_id",
+        "incident_version",
+        "revision_id",
+        "revision_number",
+        "status",
+        "run_id",
+        "timetable_source_ref",
+        "scope_kind",
+        "departure_stop_sequence",
+        "arrival_stop_sequence",
+        "impact_kind",
+        "estimated_delay_minutes",
+        "effective_from",
+        "effective_until",
+        "public_summary",
+        "verified_at",
+        "resolution_effective_at",
+    }
+
+
+def test_pending_report_is_not_a_public_incident(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+
+    detail = context.client.get(f"/api/v1/incidents/{context.report_id}")
+    listing = context.client.get(
+        "/api/v1/incidents",
+        params={"run_id": str(context.run_id)},
+    )
+
+    assert detail.status_code == 404
+    assert listing.status_code == 200
+    assert listing.json()["items"] == []
+    assert listing.json()["total"] == 0
+
+
+def test_rejected_report_is_not_a_public_incident(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    headers = sign_in(context)
+
+    decision = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/reject",
+        headers=headers,
+        json={
+            "expected_version": 1,
+            "reason": "Synthetic claim could not be verified.",
+        },
+    )
+    assert decision.status_code == 200
+    context.client.cookies.clear()
+
+    listing = context.client.get(
+        "/api/v1/incidents",
+        params={"run_id": str(context.run_id)},
+    )
+    detail = context.client.get(f"/api/v1/incidents/{context.report_id}")
+
+    assert listing.status_code == 200
+    assert listing.json()["items"] == []
+    assert listing.json()["total"] == 0
+    assert detail.status_code == 404
+
+
+def test_public_incident_returns_current_approved_revision(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, original_revision_id, headers = verified_incident(context)
+
+    amended = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/amend",
+        headers=headers,
+        json=amendment_payload(context),
+    )
+    assert amended.status_code == 200
+    context.client.cookies.clear()
+
+    response = context.client.get(f"/api/v1/incidents/{incident_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["incident_version"] == 2
+    assert payload["revision_number"] == 2
+    assert payload["estimated_delay_minutes"] == 30
+    assert payload["revision_id"] != str(original_revision_id)
+    assert payload["revision_id"] == amended.json()["current_revision_id"]
+
+
+def test_public_resolution_preserves_approved_revision(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, revision_id, headers = verified_incident(context)
+
+    resolved = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/resolve",
+        headers=headers,
+        json=resolution_payload(),
+    )
+    assert resolved.status_code == 200
+    context.client.cookies.clear()
+
+    response = context.client.get(f"/api/v1/incidents/{incident_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "resolved"
+    assert payload["incident_version"] == 2
+    assert payload["revision_number"] == 1
+    assert payload["revision_id"] == str(revision_id)
+    assert payload["resolution_effective_at"] is not None
+
+
+def test_public_incident_list_filters_by_approved_run(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, _, _ = verified_incident(context)
+    context.client.cookies.clear()
+
+    matching = context.client.get(
+        "/api/v1/incidents",
+        params={"run_id": str(context.run_id)},
+    )
+    unrelated = context.client.get(
+        "/api/v1/incidents",
+        params={"run_id": str(uuid4())},
+    )
+
+    assert matching.status_code == 200
+    assert matching.json()["total"] == 1
+    assert matching.json()["items"][0]["incident_id"] == str(incident_id)
+
+    assert unrelated.status_code == 200
+    assert unrelated.json()["items"] == []
+    assert unrelated.json()["total"] == 0
+
+
+def test_public_incident_list_pagination(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    verified_incident(context)
+    context.client.cookies.clear()
+
+    response = context.client.get(
+        "/api/v1/incidents",
+        params={
+            "run_id": str(context.run_id),
+            "limit": 1,
+            "offset": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"] == []
+    assert payload["limit"] == 1
+    assert payload["offset"] == 1
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {},
+        {"run_id": "not-a-uuid"},
+        {"limit": 0},
+        {"limit": 101},
+        {"offset": -1},
+        {"offset": 10001},
+        {"unexpected": "value"},
+    ],
+)
+def test_public_incident_list_rejects_invalid_query(
+    review_context: ReviewContext,
+    query: dict[str, object],
+) -> None:
+    context = review_context
+    params = query if not query or "run_id" in query else {"run_id": str(context.run_id), **query}
+
+    response = context.client.get(
+        "/api/v1/incidents",
+        params=params,
+    )
+
+    assert response.status_code == 422
+
+
+def test_missing_public_incident_returns_safe_not_found(
+    review_context: ReviewContext,
+) -> None:
+    response = review_context.client.get(f"/api/v1/incidents/{uuid4()}")
+
+    assert response.status_code == 404
+    payload = response.json()
+    assert payload["code"] == "NOT_FOUND"
+    assert "request_id" in payload
