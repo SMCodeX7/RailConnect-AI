@@ -1,8 +1,9 @@
+import { IncidentAuditPanel } from '../../incidents/components/IncidentAuditPanel'
+import { IncidentLifecyclePanel } from '../../incidents/components/IncidentLifecyclePanel'
 import { StaffReportQueue } from '../../incidents/components/StaffReportQueue'
 import { useStaffSession } from '../hooks/useStaffSession'
 import type { StaffPermission } from '../types'
 import { StaffLoginForm } from './StaffLoginForm'
-import { IncidentAuditPanel } from '../../incidents/components/IncidentAuditPanel'
 
 const permissionLabels: Record<StaffPermission, string> = {
   'reports.read': 'View passenger reports',
@@ -63,6 +64,7 @@ export function StaffPanel() {
       {status === 'guest' && (
         <>
           <StaffLoginForm busy={busy} onSignIn={signIn} />
+
           <p className="muted">
             Staff accounts are provisioned individually. Contact your
             administrator if you need access.
@@ -133,15 +135,27 @@ export function StaffPanel() {
 
           {!busy && hasPermission('reports.read') && (
             <StaffReportQueue
-              key={session.actor.user_id}
+              key={`reports:${session.actor.user_id}`}
               session={session}
               onSessionInvalid={refresh}
             />
           )}
 
+          {!busy &&
+            (
+              hasPermission('incidents.edit') ||
+              hasPermission('incidents.resolve')
+            ) && (
+              <IncidentLifecyclePanel
+                key={`lifecycle:${session.actor.user_id}`}
+                session={session}
+                onSessionInvalid={refresh}
+              />
+            )}
+
           {!busy && hasPermission('audit.read') && (
             <IncidentAuditPanel
-              key={session.actor.user_id}
+              key={`audit:${session.actor.user_id}`}
               onSessionInvalid={refresh}
             />
           )}

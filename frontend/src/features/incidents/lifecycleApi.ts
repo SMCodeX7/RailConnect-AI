@@ -3,6 +3,7 @@ import type {
   AmendIncidentInput,
   IncidentAuditHistory,
   IncidentLifecycleResult,
+  PublicIncidentSnapshot,
   ResolveIncidentInput,
 } from './lifecycleTypes'
 
@@ -47,6 +48,16 @@ export function loadReportAudit(
 
   return getJson<IncidentAuditHistory>(
     `/api/v1/staff/reports/${encodeURIComponent(reportId)}/audit?${query}`,
+    signal,
+  )
+}
+
+export function loadIncidentSnapshot(
+  incidentId: string,
+  signal: AbortSignal,
+): Promise<PublicIncidentSnapshot> {
+  return getJson<PublicIncidentSnapshot>(
+    `/api/v1/incidents/${encodeURIComponent(incidentId)}`,
     signal,
   )
 }

@@ -46,3 +46,15 @@ export interface IncidentAuditHistory {
   limit: number
   offset: number
 }
+
+export interface PublicIncidentSnapshot
+  extends Omit<ApprovedIncidentInput, 'evidence_basis'> {
+  incident_id: string
+  incident_version: number
+  revision_id: string
+  revision_number: number
+  status: 'active' | 'resolved'
+  timetable_source_ref: string
+  verified_at: string
+  resolution_effective_at: string | null
+}

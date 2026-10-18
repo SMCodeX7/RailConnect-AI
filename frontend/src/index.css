@@ -532,3 +532,17 @@ button:disabled {
 .incident-audit-list dd {
   margin-inline-start: 0;
 }
+
+.incident-lifecycle-panel {
+  margin-block-start: 2rem;
+  padding-block-start: 1.5rem;
+  border-block-start: 1px solid #cbd5e1;
+}
+
+.incident-lifecycle-panel dl {
+  overflow-wrap: anywhere;
+}
+
+.incident-lifecycle-panel form {
+  margin-block: 1rem;
+}
