@@ -1,4 +1,4 @@
-# Demonstration timetable data card
+\# Demonstration timetable data card
 
 ## Purpose
 
@@ -145,15 +145,31 @@ remain planned for the timetable-management feature.
 ## Passenger reports and incident scenarios
 
 Passenger reports are stored separately from this timetable dataset.
-They are unverified claims and do not change scheduled run timestamps
-or establish an operational disruption.
+They begin as unverified claims and do not establish an operational disruption.
 
 The incident-reporting implementation includes synthetic database and API
 test fixtures. These fixtures are not official railway incident records
 and are not part of the timetable JSON files listed above.
 
-Protected verification, incident lifecycle workflows and journey impact
-integration remain subsequent implementation stages.
+Protected staff verification and rejection are implemented at API
+and service levels.
+
+Verification creates a linked incident, an initial approved revision
+and an actor-attributed audit event in one transaction.
+Rejection records a decision and audit event without creating an incident.
+
+Staff approval within this demonstration does not turn fictional scenarios
+into official railway announcements.
+
+Incident records and approved delay values remain separate from the
+original scheduled timetable. Review does not overwrite scheduled
+run-stop timestamps.
+
+Incident amendments, resolution, public incident responses and passenger/staff
+reporting interfaces remain subsequent implementation stages.
+
+Verified incident records do not yet affect journey results.
+Journey impact calculation belongs to the disruption feature.
 
 Future repeatable incident demonstration scenarios must be explicitly
 labelled as synthetic and documented separately from timetable provenance.

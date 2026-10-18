@@ -98,7 +98,7 @@ RAILCONNECT_REPORT_CLIENT_MAX_ATTEMPTS=5
 
 Use the same non-secret setting names in `.env.example`.
 Leave its database password blank.
-Keep the actual database password only in the ignored local configuration.
+Keep the actual database password only in ignored local configuration.
 
 The `.env` file is ignored by Git.
 Environment variables override values from `.env`.
@@ -134,6 +134,9 @@ Expected database and user: `railconnect`.
 
 The local database listens on `127.0.0.1:5433`.
 Its data persists in a Docker volume.
+
+If database tests stop with a connection timeout, check Docker Desktop,
+the container status and the application connection before changing code.
 
 ## Migrations and demonstration data
 
@@ -345,7 +348,8 @@ Sign out revokes the session and clears its cookie.
 An unconfirmed sign-out displays an error rather than reporting success.
 
 Journey search remains public.
-Incident and timetable management interfaces are implemented separately.
+The report-review API is protected.
+Its staff interface and timetable management interfaces remain pending.
 
 Authentication endpoints are:
 
@@ -469,9 +473,159 @@ Attempts reaching the submission service are counted separately from
 report creation. A failed report transaction does not reset its counter.
 Malformed bodies are rejected by API validation before the service.
 
-The report-submission API is implemented.
-The passenger reporting interface and protected review workflow remain
-subsequent implementation stages.
+The submission API is implemented.
+The passenger reporting interface remains pending.
+
+## Protected staff report queue
+
+The queue endpoint is:
+
+```text
+GET /api/v1/staff/reports?limit=20&offset=0
+```
+
+Access requires a valid staff session and reports.read.
+The queue service also checks that permission.
+
+Only pending reports are returned.
+Ordering is by submitted_at followed by report ID, oldest first.
+
+Pagination defaults to 20 items and offset 0.
+The limit must be between 1 and 100.
+The offset must be between 0 and 10000.
+
+The response contains:
+
+- items
+- total
+- limit
+- offset
+
+Each item includes the report ID, narrative, timestamps, scope hints,
+pending status and current report version.
+
+The narrative is an unverified passenger claim.
+This is a protected staff response, not a public incident response.
+
+Reading the queue does not change report state.
+Successful queue responses use Cache-Control: no-store.
+
+## Protected verification and rejection
+
+Available endpoints:
+
+```text
+POST /api/v1/staff/reports/{report_id}/verify
+POST /api/v1/staff/reports/{report_id}/reject
+```
+
+Both require:
+
+- A valid staff session cookie.
+- reports.review permission.
+- An explicitly allowed Origin.
+- The session token in the X-CSRF-Token header.
+- A JSON request body.
+
+The CSRF token is separate from the HTTP-only authentication cookie.
+Use the csrf_token returned by login or the current-session endpoint.
+
+The service rechecks the current account and role permissions.
+Identified staff submitters cannot review their own reports.
+
+The server derives reviewer identity, decision time and audit request ID.
+Do not supply reviewer IDs, review timestamps or status fields.
+
+### Rejection request
+
+Supply the report's current version and a nonempty reason:
+
+```json
+{
+  "expected_version": 1,
+  "reason": "Insufficient evidence to verify the reported disruption."
+}
+```
+
+Reasons are stripped of boundary whitespace and limited to 2000 characters.
+Expected versions must be positive integers.
+
+Rejection increments the report version and records an audit event.
+It does not create an incident.
+
+### Verification request
+
+Supply:
+
+- expected_version
+- reason
+- approved
+
+The approved object contains:
+
+- run_id: an existing prepared dated run.
+- scope_kind: run or segment.
+- departure_stop_sequence and arrival_stop_sequence for segment scope.
+- impact_kind: cancellation, restriction or delay.
+- estimated_delay_minutes for delay impact.
+- effective_from and effective_until as timezone-aware timestamps.
+- public_summary: 1 to 1000 characters.
+- evidence_basis: 1 to 2000 characters.
+
+Whole-run scope must omit segment endpoints or set both to null.
+Segment scope requires both endpoints, ordered and belonging to the run.
+
+Cancellation requires whole-run scope.
+Delay requires integer estimated_delay_minutes between 1 and 1440.
+Cancellation and restriction must not contain estimated delay minutes.
+
+The effective end must follow the effective start.
+Approved timestamps are normalized to UTC when stored.
+
+Staff must explicitly approve facts independently of passenger hints.
+A passenger narrative is not an approved delay estimate.
+
+### Decision results and errors
+
+Successful verification and rejection return HTTP 200 with:
+
+- report_id
+- status
+- report_version
+- incident_id
+- revision_id
+- incident_version
+
+Rejection returns null incident and revision references.
+Verification returns the newly created incident and initial revision.
+
+Verification creates the report decision, incident, initial revision
+and audit event in one business transaction.
+
+Rejection creates the report decision and audit event in one transaction.
+
+Audit events record the authenticated actor, reason, resulting versions
+and server-generated request ID.
+
+A business failure rolls back the entire decision.
+Authentication activity uses a separate transaction.
+
+Error responses use the existing safe error envelope:
+
+- 401: missing or invalid authentication.
+- 403: insufficient permission, invalid Origin/CSRF or identified self-review.
+- 404: report does not exist.
+- 409: stale expected version or report already reviewed.
+- 422: invalid input or approved run/segment references.
+
+Concurrent review attempts permit one successful decision.
+The other receives a version conflict rather than overwriting the decision.
+
+Successful decision responses use Cache-Control: no-store.
+
+The review APIs are implemented.
+Amendment, resolution, public incident responses and staff review interfaces
+remain subsequent implementation stages.
 
 ## Incident storage and history
 
@@ -484,6 +638,9 @@ Migration `5c23c99becea` adds:
 
 Migration `af88e86de607` adds report_rate_limits.
 
+The current migration head is `af88e86de607`.
+The protected review workflow requires no additional migration.
+
 Passenger claims are stored separately from approved operational facts.
 Revision records identify the approved run or segment, effective interval,
 impact, evidence basis and verification actor.
@@ -491,9 +648,11 @@ impact, evidence basis and verification actor.
 Database triggers reject updates, deletes and truncation of revision
 and audit history. Transaction rollback remains supported.
 
-Staff review, amendment, resolution and public incident responses are
-implemented in subsequent stages. The presence of these tables does not
-mean those workflows are complete.
+Verification creates incident version 1 and revision number 1.
+Subsequent amendments must preserve previous revisions.
+
+Verified incident records do not yet change journey results.
+That integration belongs to the disruption feature.
 
 ## Report-limit cleanup
 
@@ -543,8 +702,18 @@ python -m pytest -c backend/pyproject.toml --tb=short
 Run PostgreSQL and apply migrations before running database tests.
 
 Most database tests use isolated fixtures and roll back their changes.
-Concurrency tests use independent connections and committed test records,
-then remove their own generated records.
+Rate-limit concurrency tests use independent connections and committed
+test records, then remove their own generated records.
+
+The review concurrency test creates a uniquely named temporary schema
+from model metadata, runs independent transactions and removes the schema.
+
+Its development/test database account requires CREATE permission
+on the database so it can create the temporary schema.
+
+This test checks concurrent review transactions.
+Migration-installed history triggers are covered separately by the
+incident immutability tests.
 
 Cleanup tests exercise deletion inside rollback-isolated transactions.
 
