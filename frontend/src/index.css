@@ -372,3 +372,74 @@ button:disabled {
   margin: 0.25rem 0 0;
   overflow-wrap: anywhere;
 }
+
+.passenger-report-panel {
+  margin-block-start: 1.5rem;
+}
+
+.report-fields {
+  display: grid;
+  gap: 1rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+.report-fields legend {
+  padding-inline: 0.35rem;
+  font-weight: 600;
+}
+
+.report-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.report-field label {
+  font-weight: 600;
+}
+
+.report-field input,
+.report-field textarea {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: 0.7rem;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+.report-field textarea {
+  resize: vertical;
+}
+
+.report-field .muted {
+  margin: 0;
+}
+
+.report-fields button {
+  justify-self: start;
+}
+
+.report-receipt {
+  padding: 1rem;
+  border: 1px solid #64748b;
+  border-radius: 0.75rem;
+}
+
+.report-receipt dl {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.report-receipt dt {
+  font-weight: 600;
+}
+
+.report-receipt dd {
+  margin-inline-start: 0;
+  overflow-wrap: anywhere;
+}
