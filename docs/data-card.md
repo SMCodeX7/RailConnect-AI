@@ -1,4 +1,4 @@
-\# Demonstration timetable data card
+# Demonstration timetable data card
 
 ## Purpose
 
@@ -22,18 +22,20 @@ Station records use demo-stations-v1.
 Timetable service names, times and operating patterns are project-generated
 fictional examples.
 
-Station names represent selected Sri Lankan locations. DEMO_ station codes
-are project identifiers, not official railway codes.
+Station names represent selected Sri Lankan locations.
+DEMO_ station codes are project identifiers, not official railway codes.
 
-No official timetable or third-party timetable text is represented as the
-source of these fictional schedules.
+No official timetable or third-party timetable text is represented as
+the source of these fictional schedules.
 
-The metadata file records the timetable's title, repository location and
-reuse basis. External retrieval time is null because this timetable was
-not acquired from an external provider.
+The metadata file records the timetable title, repository location
+and reuse basis.
+
+External retrieval time is null because the timetable was not acquired
+from an external provider.
 
 This card does not establish licensing for future third-party imports.
-Check source terms and record their reuse basis before importing them.
+Check source terms and record reuse basis before importing them.
 
 ## Counts and coverage
 
@@ -43,8 +45,9 @@ Check source terms and record their reuse basis before importing them.
 - Northern, eastern, central, southern and hill-country examples.
 - Daily, weekday, weekend, reverse-direction and overnight examples.
 
-Coverage is selective. Missing stations or journeys do not establish that
-real railway services are unavailable.
+Coverage is selective.
+Missing stations or journeys do not establish that real services
+are unavailable.
 
 ## Effective period
 
@@ -56,7 +59,7 @@ They are not observation dates or evidence of current railway operations.
 
 ## Field meanings
 
-- service code: stable project identifier.
+- Service code: stable project identifier.
 - operating_days: bit mask; Monday is 1, Tuesday is 2, through Sunday at 64.
 - arrival_minutes and departure_minutes: offsets from midnight on the
   service's starting date in Asia/Colombo.
@@ -66,7 +69,8 @@ They are not observation dates or evidence of current railway operations.
 - dropoff_allowed: passengers may alight at that stop.
 
 For this demonstration import, omitted permissions follow the presence
-of departure and arrival times respectively. Explicit values are preserved.
+of departure and arrival times respectively.
+Explicit values are preserved.
 
 ## Validation and normalization
 
@@ -89,8 +93,8 @@ Origin arrival times and terminal departure times are intentionally absent.
 No observed or estimated arrival times, telemetry, fares, seat inventory,
 platform information or real operational status is supplied by this dataset.
 
-Intermediate stops are selected demonstration stops and do not represent
-all stops made by real trains.
+Intermediate stops are selected demonstration stops.
+They do not represent all stops made by real trains.
 
 ## Dated runs
 
@@ -102,13 +106,14 @@ The documented example prepares 2026-10-12 through 2026-10-18:
 Scheduled run-stop timestamps are stored in UTC.
 Search and display use Asia/Colombo.
 
-Search does not create missing runs. An empty result can reflect an
-unprepared date range rather than the absence of a recurring pattern.
+Search does not create missing runs.
+An empty result can reflect an unprepared range rather than the absence
+of a recurring pattern.
 
 ## Provenance and import history
 
-Source registration stores the source reference, metadata, effective
-period and exact dataset content hash.
+Source registration stores source reference, metadata, effective period
+and exact dataset content hash.
 
 Registration time records when RailConnect registered the source.
 It does not establish live railway freshness.
@@ -121,52 +126,71 @@ Execution context is not authenticated staff identity.
 Source registration, timetable seeding and summary creation share one
 transaction. Failure rolls back the operation.
 
-Repeated imports verify the source and data and preserve the original
-summary. Changed content or metadata cannot silently reuse an existing
-source reference.
+Repeated imports verify source and data and preserve the original summary.
+
+Changed content or metadata cannot silently reuse an existing source reference.
 
 ## Update process
 
 1. Prepare a candidate dataset and provenance metadata.
-2. Validate the files and preview database differences.
+2. Validate files and preview database differences.
 3. Investigate conflicts rather than overwriting existing records.
 4. Import through the transactional application service.
-5. Record the import result and prepare the required dated runs.
+5. Record the result and prepare required dated runs.
 6. Run regression tests and update this card.
 
-The current demonstration importer supports insertion and verification.
-Replacement of existing service definitions requires a separately reviewed
+The demonstration importer supports insertion and verification.
+Replacement of service definitions requires a separately reviewed
 versioning and migration workflow.
 
 Staff identity is implemented.
-A protected staff import interface and authenticated import attribution
+Protected staff import access and authenticated import attribution
 remain planned for the timetable-management feature.
 
 ## Passenger reports and incident scenarios
 
 Passenger reports are stored separately from this timetable dataset.
-They begin as unverified claims and do not establish an operational disruption.
+They begin as unverified claims and do not establish operational disruption.
 
 The incident-reporting implementation includes synthetic database and API
-test fixtures. These fixtures are not official railway incident records
-and are not part of the timetable JSON files listed above.
+test fixtures.
+
+These are not official railway incident records and are not part of
+the timetable JSON files listed above.
 
 Protected staff verification and rejection are implemented at API
 and service levels.
 
 Verification creates a linked incident, an initial approved revision
 and an actor-attributed audit event in one transaction.
+
 Rejection records a decision and audit event without creating an incident.
 
-Staff approval within this demonstration does not turn fictional scenarios
-into official railway announcements.
+Protected amendments create new approved revisions without overwriting
+previous facts.
+
+Resolution records staff actor, reason, decision time and effective
+resolution time while preserving approved revision history.
+
+Amendment and resolution require expected incident versions.
+Their business changes and audit writes are transactional.
+
+Protected audit history requires audit.read and includes verification,
+rejection, amendment and resolution events.
+
+Audit reasons and actor references are private management data.
+They are not public timetable provenance.
+
+Staff approval within this demonstration does not make fictional scenarios
+official railway announcements.
 
 Incident records and approved delay values remain separate from the
-original scheduled timetable. Review does not overwrite scheduled
-run-stop timestamps.
+original scheduled timetable.
 
-Incident amendments, resolution, public incident responses and passenger/staff
-reporting interfaces remain subsequent implementation stages.
+Review and lifecycle changes do not overwrite scheduled run-stop timestamps.
+
+Public incident responses and passenger/staff reporting interfaces
+remain subsequent implementation stages.
 
 Verified incident records do not yet affect journey results.
 Journey impact calculation belongs to the disruption feature.

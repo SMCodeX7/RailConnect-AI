@@ -23,7 +23,18 @@ from railconnect.modules.identity.tokens import (
     generate_session_token,
     hash_session_token,
 )
-from railconnect.modules.incidents.errors import ReportReviewConflictError
+from railconnect.modules.incidents.errors import (
+    IncidentConflictError,
+    ReportReviewConflictError,
+)
+from railconnect.modules.incidents.lifecycle_schemas import (
+    AmendIncidentInput,
+    ResolveIncidentInput,
+)
+from railconnect.modules.incidents.lifecycle_service import (
+    amend_incident,
+    resolve_incident,
+)
 from railconnect.modules.incidents.models.incident import Incident
 from railconnect.modules.incidents.models.incident_audit_event import IncidentAuditEvent
 from railconnect.modules.incidents.models.incident_report import IncidentReport
@@ -42,14 +53,26 @@ from railconnect.modules.timetable.models.service_run import ServiceRun
 from railconnect.modules.timetable.models.train_service import TrainService
 
 
-def test_simultaneous_verify_and_reject_allow_only_one_decision() -> None:
+@pytest.mark.parametrize(
+    ("first_action", "second_action"),
+    [
+        ("verify", "reject"),
+        ("amend", "amend"),
+        ("amend", "resolve"),
+        ("resolve", "resolve"),
+    ],
+)
+def test_concurrent_decisions_allow_only_one_winner(
+    first_action: str,
+    second_action: str,
+) -> None:
     database_settings = Settings()
 
     if database_settings.database_url is None:
-        pytest.skip("PostgreSQL is required for review concurrency tests.")
+        pytest.skip("PostgreSQL is required for concurrency tests.")
 
     if database_settings.environment not in {"development", "test"}:
-        pytest.fail("Review concurrency tests require a development or test database.")
+        pytest.fail("Concurrency tests require a development or test database.")
 
     settings = Settings(
         _env_file=None,
@@ -62,6 +85,7 @@ def test_simultaneous_verify_and_reject_allow_only_one_decision() -> None:
     isolated_engine = engine.execution_options(schema_translate_map={None: schema_name})
     schema_created = False
     now = datetime(2026, 10, 18, 6, 0, tzinfo=UTC)
+    lifecycle_race = first_action != "verify"
 
     try:
         with engine.begin() as connection:
@@ -152,7 +176,6 @@ def test_simultaneous_verify_and_reject_allow_only_one_decision() -> None:
                 session.add(report)
 
                 tokens = [generate_session_token() for _ in users]
-
                 session.add_all(
                     [
                         AuthSession(
@@ -201,9 +224,39 @@ def test_simultaneous_verify_and_reject_allow_only_one_decision() -> None:
             expected_version=1,
             reason="Synthetic concurrent rejection.",
         )
+        amend_input = AmendIncidentInput(
+            expected_version=1,
+            reason="Synthetic concurrent amendment.",
+            approved=verify_input.approved.model_copy(update={"estimated_delay_minutes": 30}),
+        )
+        resolve_input = ResolveIncidentInput(
+            expected_version=1,
+            reason="Synthetic concurrent resolution.",
+            resolution_effective_at=now,
+        )
+
+        incident_id = None
+        initial_revision_id = None
+
+        if lifecycle_race:
+            with Session(isolated_engine) as session:
+                initial = verify_report(
+                    session,
+                    authenticated[0],
+                    report_id,
+                    verify_input,
+                    request_id=f"initial-{uuid4().hex}",
+                    now=now,
+                )
+                incident_id = initial.incident_id
+                initial_revision_id = initial.revision_id
+
+            assert incident_id is not None
+            assert initial_revision_id is not None
+
         barrier = Barrier(2)
 
-        def review(
+        def decide(
             action: str,
             actor: AuthenticatedSession,
         ) -> str:
@@ -214,81 +267,151 @@ def test_simultaneous_verify_and_reject_allow_only_one_decision() -> None:
                 try:
                     with Session(bind=connection) as session:
                         barrier.wait(timeout=15)
+                        request_id = f"race-{uuid4().hex}"
 
                         try:
                             if action == "verify":
-                                result = verify_report(
+                                verify_report(
                                     session,
                                     actor,
                                     report_id,
                                     verify_input,
-                                    request_id=f"race-{uuid4().hex}",
+                                    request_id=request_id,
                                     now=now,
                                 )
-                            else:
-                                result = reject_report(
+                            elif action == "reject":
+                                reject_report(
                                     session,
                                     actor,
                                     report_id,
                                     reject_input,
-                                    request_id=f"race-{uuid4().hex}",
+                                    request_id=request_id,
+                                    now=now,
+                                )
+                            elif action == "amend":
+                                assert incident_id is not None
+                                amend_incident(
+                                    session,
+                                    actor,
+                                    incident_id,
+                                    amend_input,
+                                    request_id=request_id,
+                                    now=now,
+                                )
+                            else:
+                                assert action == "resolve"
+                                assert incident_id is not None
+                                resolve_incident(
+                                    session,
+                                    actor,
+                                    incident_id,
+                                    resolve_input,
+                                    request_id=request_id,
                                     now=now,
                                 )
 
-                            return result.status
-                        except ReportReviewConflictError:
+                            return action
+                        except (
+                            ReportReviewConflictError,
+                            IncidentConflictError,
+                        ):
                             return "conflict"
                 finally:
                     connection.exec_driver_sql("RESET statement_timeout")
                     connection.commit()
 
         with ThreadPoolExecutor(max_workers=2) as executor:
-            verify_future = executor.submit(
-                review,
-                "verify",
+            first_future = executor.submit(
+                decide,
+                first_action,
                 authenticated[0],
             )
-            reject_future = executor.submit(
-                review,
-                "reject",
+            second_future = executor.submit(
+                decide,
+                second_action,
                 authenticated[1],
             )
             results = [
-                verify_future.result(timeout=30),
-                reject_future.result(timeout=30),
+                first_future.result(timeout=30),
+                second_future.result(timeout=30),
             ]
 
         assert results.count("conflict") == 1
         winners = [result for result in results if result != "conflict"]
         assert len(winners) == 1
+        winner = winners[0]
 
         with Session(isolated_engine) as session:
             stored_report = session.get(IncidentReport, report_id)
             assert stored_report is not None
             assert stored_report.version == 2
-            assert stored_report.status == winners[0]
 
             audits = session.scalars(
                 select(IncidentAuditEvent).where(IncidentAuditEvent.report_id == report_id)
             ).all()
-            assert len(audits) == 1
-            assert audits[0].action == f"report_{winners[0]}"
-            assert audits[0].report_version == 2
-
             incidents = session.scalars(
                 select(Incident).where(Incident.originating_report_id == report_id)
             ).all()
             revisions = session.scalars(select(IncidentRevision)).all()
 
-            if winners[0] == "verified":
-                assert len(incidents) == 1
-                assert len(revisions) == 1
-                assert revisions[0].incident_id == incidents[0].id
-                assert audits[0].revision_id == revisions[0].id
+            if not lifecycle_race:
+                expected_status = "verified" if winner == "verify" else "rejected"
+                assert stored_report.status == expected_status
+                assert len(audits) == 1
+                assert audits[0].action == f"report_{expected_status}"
+                assert audits[0].report_version == 2
+
+                if winner == "verify":
+                    assert len(incidents) == 1
+                    assert len(revisions) == 1
+                    assert incidents[0].version == 1
+                    assert revisions[0].incident_id == incidents[0].id
+                    assert audits[0].revision_id == revisions[0].id
+                else:
+                    assert incidents == []
+                    assert revisions == []
+                    assert audits[0].incident_id is None
             else:
-                assert incidents == []
-                assert revisions == []
-                assert audits[0].incident_id is None
+                assert stored_report.status == "verified"
+                assert len(incidents) == 1
+                incident = incidents[0]
+                assert incident.id == incident_id
+                assert incident.version == 2
+                assert len(audits) == 2
+
+                changes = [audit for audit in audits if audit.action != "report_verified"]
+                assert len(changes) == 1
+                change = changes[0]
+                assert change.incident_version == 2
+                assert change.report_version == 2
+                assert change.incident_id == incident.id
+
+                original = session.get(
+                    IncidentRevision,
+                    initial_revision_id,
+                )
+                assert original is not None
+                assert original.revision_number == 1
+                assert original.estimated_delay_minutes == 15
+
+                if winner == "amend":
+                    assert incident.status == "active"
+                    assert incident.current_revision_number == 2
+                    assert len(revisions) == 2
+                    assert change.action == "incident_revised"
+
+                    latest = next(
+                        revision for revision in revisions if revision.revision_number == 2
+                    )
+                    assert latest.estimated_delay_minutes == 30
+                    assert change.revision_id == latest.id
+                else:
+                    assert incident.status == "resolved"
+                    assert incident.current_revision_number == 1
+                    assert incident.resolution_effective_at == now
+                    assert len(revisions) == 1
+                    assert change.action == "incident_resolved"
+                    assert change.revision_id == original.id
 
     finally:
         try:

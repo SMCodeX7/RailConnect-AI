@@ -14,12 +14,13 @@ Passing local tests does not establish that a feature is deployed or released.
 - Release target: v1.0 portfolio pilot.
 - Active branch: feat/incident-reporting.
 - Foundation, journey search/details and staff identity merged into main.
-- Incident-reporting stages 1-2 completed and committed locally.
-- Stage 3 protected staff queue and verify/reject workflow validated locally.
-- Complete backend suite: 512 passed without skips.
-- Stage 3 documentation and checkpoint commit are pending.
-- Incident amendments, resolution, public responses and frontend remain.
-- GitHub CI for the current incident-reporting changes remains pending.
+- Incident-reporting stages 1–3 completed and committed locally.
+- Stage 3 commit: 71bc123, protected report review and atomic decisions.
+- Stage 4 lifecycle and protected audit-history APIs validated locally.
+- Complete backend suite: 566 passed without skips.
+- Stage 4 documentation updated; checkpoint commit pending.
+- Public incident responses, frontend and final branch integration remain.
+- GitHub CI for the latest branch changes remains pending.
 
 ## Foundation
 
@@ -81,8 +82,9 @@ Source registration time does not establish live operational freshness.
 - [x] Bounded identity cleanup with read-only preview.
 - [x] Frontend login, logout, expiry and navigation tests.
 - [x] Manual login, restoration, refresh and logout verification.
-- [x] Verified identity cleanup deletes only selected, locked batch keys.
-- [x] Connected authorization to report queue and review operations.
+- [x] Verified cleanup deletes only selected, locked batch keys.
+- [x] Authorization for report submission, queue and review operations.
+- [x] Authorization for incident amendments, resolution and audit history.
 - [ ] Configure identity cleanup scheduling during deployment.
 - [ ] Connect authorization to remaining management workflows.
 
@@ -91,27 +93,27 @@ Every protected action requires server-side authorization.
 
 ## v1 reports and incidents
 
-### Completed database and submission work
+### Database and passenger submission
 
-- [x] Separate passenger-report and verified-incident database records.
+- [x] Separate passenger-report and verified-incident records.
 - [x] Incident revision and actor-attributed audit storage.
 - [x] Database constraints for review state, scope and impact values.
 - [x] Database protection against revision/audit updates, deletes and truncation.
 - [x] Submission schemas rejecting server-owned review fields.
 - [x] Scope-hint validation against prepared runs, stops and active stations.
-- [x] Timezone-aware observation times and future-observation rejection.
+- [x] Aware observation times and future-observation rejection.
 - [x] POST /api/v1/reports with server-forced pending state.
-- [x] Submission receipts excluding narratives and private review fields.
+- [x] Receipts excluding narrative and private review fields.
 - [x] Anonymous submission and server-derived staff attribution.
 - [x] CSRF checks when a staff session cookie is present.
 - [x] Origin and JSON content-type checks.
-- [x] Separate database-backed report-submission rate limits.
-- [x] Counter transactions preserved independently of report creation failures.
+- [x] Separate database-backed submission rate limits.
+- [x] Counter transactions independent of report creation failures.
 - [x] Concurrent report-limit admission verification.
-- [x] Report-counter cleanup preview and bounded transactional deletion.
+- [x] Counter cleanup preview and bounded transactional deletion.
 - [x] Submission authorization, validation and rollback tests.
 
-### Completed protected review work
+### Protected staff review
 
 - [x] Protected pending queue with bounded pagination.
 - [x] Stable queue ordering by submission time and report ID.
@@ -120,48 +122,64 @@ Every protected action requires server-side authorization.
 - [x] Strict expected-version request validation.
 - [x] Locked report reads and conflict checks.
 - [x] Independent validation of approved run/segment references.
-- [x] Atomic verification creating the linked incident and initial revision.
+- [x] Atomic verification creating the incident and initial revision.
 - [x] Transactional audit writes for verification and rejection.
-- [x] Server-derived reviewer identity, decision time and audit request ID.
+- [x] Server-derived identity, decision time and audit request ID.
 - [x] Prevention of identified staff self-review.
-- [x] Current account and role-permission checks in the decision service.
+- [x] Current account and role-permission checks.
 - [x] Review authorization and rollback tests.
-- [x] Simultaneous verification/rejection produces one decision and one conflict.
+- [x] Concurrent verification/rejection allows one decision and one conflict.
 
-### Remaining lifecycle and interface work
+### Incident lifecycle and audit access
 
-- [ ] Approved amendment workflow creating new immutable revisions.
-- [ ] Expected-version conflict checks for amendments and resolution.
-- [ ] Transactional audit writes for amendment and resolution.
-- [ ] Resolution with effective end time and preserved history.
+- [x] Approved amendments create new immutable revisions.
+- [x] Expected-version checks for amendments and resolution.
+- [x] Current account and role checks in lifecycle transactions.
+- [x] Origin and CSRF protection for lifecycle mutations.
+- [x] Transactional amendment and resolution audit writes.
+- [x] Resolution actor, reason, decision time and effective resolution time.
+- [x] Resolution preserves approved revision history.
+- [x] Invalid resolution-time rejection.
+- [x] Resolved incidents reject further lifecycle changes.
+- [x] Invalid approved scope leaves current incident history unchanged.
+- [x] Audit failure rolls back lifecycle changes.
+- [x] Amendment/amendment concurrency test.
+- [x] Amendment/resolution concurrency test.
+- [x] Resolution/resolution concurrency test.
+- [x] Protected audit-history access requiring audit.read.
+- [x] Audit allowlists, bounded pagination and no-store responses.
+- [x] Audit history includes rejected reports without incidents.
+- [x] Audit authentication and permission tests.
+
+No incident reopening workflow is implemented.
+
+### Remaining public and interface work
+
 - [ ] Approved public incident response allowlists.
 - [ ] Public exclusion of pending/rejected claims and private notes.
 - [ ] Passenger reporting interface.
 - [ ] Staff review and incident-management interfaces.
 - [ ] Refresh after successful review and lifecycle decisions.
 - [ ] Repeatable synthetic report and incident scenarios.
-- [ ] Lifecycle authorization, concurrency and rollback tests.
-- [ ] Protected audit-history access.
 - [ ] Manual end-to-end incident workflow verification.
 
-Verification and rejection are implemented at API and service levels.
-Amendments, resolution, public incident responses and reporting/review
-interfaces remain pending.
+Verified incidents do not yet affect journey calculations.
+Public incident responses and reporting/review interfaces remain pending.
 
 ### Incident-reporting branch stages
 
 - [x] Stage 1: database models, migrations and constraint validation.
 - [x] Stage 2: passenger submission API, rate limiting and cleanup.
 - [x] Stage 3: protected staff queue and verify/reject workflow.
-- [ ] Stage 4: revisions, resolution and transactional lifecycle audit history.
+- [x] Stage 4: lifecycle and audit-history APIs locally validated.
 - [ ] Stage 5: approved public incident responses.
 - [ ] Stage 6: passenger and staff frontend workflows.
 - [ ] Stage 7: final integration, documentation, CI and merge.
 
-Stages 1-2 are committed locally.
-Stage 3 has passed local validation; its documentation and commit are pending.
+Stages 1–3 are committed locally.
+Stage 4 checkpoint commit remains pending.
 
-Estimated incident-reporting branch completion is approximately 55%.
+Estimated incident-reporting branch completion is approximately 72%.
 This is an effort estimate, not overall v1 release completion.
 
 Commit each validated stage separately.
@@ -233,11 +251,12 @@ Historical checkpoints:
 - Completed staff-identity backend suite: 310 passed without skips.
 - Completed staff-identity frontend suite: 62 passed.
 - Nine manual staff-access checks passed.
-- Incident-reporting stages 1-2 backend suite: 431 passed without skips.
+- Incident-reporting stages 1–2 backend suite: 431 passed.
+- Incident-reporting Stage 3 backend suite: 512 passed.
 
 Current incident-reporting checkpoint:
 
-- Complete backend suite: 512 passed without skips.
+- Complete backend suite: 566 passed without skips.
 - Incident database and scope tests: 36 passed.
 - Submission schema tests: 28 passed.
 - Report-limit tests: 13 passed.
@@ -247,22 +266,24 @@ Current incident-reporting checkpoint:
 - Report cleanup tests: 15 passed.
 - Pending-queue tests: 14 passed.
 - Review-schema tests: 43 passed.
-- Review API and service-security tests: 23 passed.
-- Simultaneous-review test: 1 passed.
+- Review, lifecycle and audit API/security tests: 58 passed.
+- Lifecycle schema tests: 16 passed.
+- Review and lifecycle concurrency tests: 4 passed.
+- Combined lifecycle schemas, API/security and concurrency checks: 78 passed.
 - Combined identity/report cleanup tests: 29 passed.
 - Ruff lint passed across source, tests, migrations and scripts.
-- Ruff formatting: 155 files already formatted.
-- mypy passed for 100 source files.
+- Ruff formatting: 164 files already formatted.
+- mypy passed for 108 source files.
 - Alembic reports no new upgrade operations.
 - Migration head remains af88e86de607.
-- Git whitespace check passed before the latest documentation edits.
+- Git whitespace check passed before these documentation updates.
 - Current incident-reporting GitHub CI remains pending.
 
-Focused test counts are subsets of the complete suite.
-The combined cleanup count is not an additional set of tests.
+Focused counts are subsets of the complete suite.
+Combined counts are not additional sets of tests.
 
-The review concurrency test uses independent connections in a temporary
-schema created from model metadata and removes that schema afterward.
+Concurrency cases use independent connections in temporary schemas
+created from model metadata and remove those schemas afterward.
 Migration-installed history triggers are tested separately.
 
 New features must be validated against the complete current suite.
@@ -280,7 +301,7 @@ The working sequence after staff identity is:
 6. feat/pilot-release
 
 Split a branch when necessary to keep changes reviewable.
-Branch organization does not reduce the handbook acceptance requirements.
+Branch organization does not reduce handbook acceptance requirements.
 
 ## Later versions
 
@@ -302,20 +323,17 @@ Conditional integrations, scaling and operational readiness.
 
 ## Next implementation task
 
-Update the stage 3 documentation and commit the validated protected
-staff-review checkpoint on feat/incident-reporting.
+Commit the validated Stage 4 lifecycle and audit-history checkpoint
+on feat/incident-reporting.
 
-Continue with stage 4:
-versioned incident amendments, resolution and transactional lifecycle audit history.
+Continue with Stage 5:
+approved public incident responses, explicit field allowlists and exclusion
+of private report and review content.
 
-Reuse the identity module for authenticated actors and explicit permissions.
-Require expected versions for lifecycle changes.
-Preserve previous approved revisions and audit records.
-
-Then implement approved public incident responses and passenger/staff interfaces.
+Then implement passenger reporting and staff incident-management interfaces.
 
 Commit each validated stage separately.
 Push and review the completed branch before merging after CI passes.
 
 Connect disruption calculations in the subsequent disruption feature.
-Preserve the existing tested journey and authentication behavior.
+Preserve existing tested journey and authentication behavior.

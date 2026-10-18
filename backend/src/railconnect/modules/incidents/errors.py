@@ -18,3 +18,19 @@ class ReportReviewConflictError(ValueError):
 
 class InvalidApprovedIncidentError(ValueError):
     pass
+
+
+class IncidentNotFoundError(LookupError):
+    pass
+
+
+class IncidentConflictError(ValueError):
+    pass
+
+
+class InvalidIncidentLifecycleError(ValueError):
+    pass
+
+
+class IncidentHistoryError(RuntimeError):
+    pass

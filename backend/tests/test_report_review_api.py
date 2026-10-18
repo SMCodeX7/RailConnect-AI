@@ -783,3 +783,638 @@ def test_audit_failure_rolls_back_rejection(
     assert report.version == 1
     assert report.reviewed_by_id is None
     assert_no_operational_records(context)
+
+
+def verified_incident(
+    context: ReviewContext,
+) -> tuple[UUID, UUID, dict[str, str]]:
+    headers = sign_in(context)
+    response = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/verify",
+        json=verify_payload(context),
+        headers=headers,
+    )
+    assert response.status_code == 200
+
+    body = response.json()
+    return UUID(body["incident_id"]), UUID(body["revision_id"]), headers
+
+
+def amendment_payload(context: ReviewContext) -> dict[str, object]:
+    payload = verify_payload(context)
+    payload["reason"] = "Updated synthetic delay evidence."
+
+    approved = payload["approved"]
+    assert isinstance(approved, dict)
+    approved["estimated_delay_minutes"] = 30
+
+    return payload
+
+
+def resolution_payload() -> dict[str, object]:
+    return {
+        "expected_version": 1,
+        "reason": "Synthetic disruption ended.",
+        "resolution_effective_at": NOW.isoformat(),
+    }
+
+
+def test_amendment_creates_new_revision_and_preserves_original(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, original_revision_id, headers = verified_incident(context)
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/amend",
+        json=amendment_payload(context),
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+
+    body = response.json()
+    assert body["status"] == "active"
+    assert body["incident_version"] == 2
+    assert body["current_revision_number"] == 2
+    assert body["current_revision_id"] != str(original_revision_id)
+
+    context.database.expire_all()
+    original = context.database.get(IncidentRevision, original_revision_id)
+    current = context.database.get(
+        IncidentRevision,
+        UUID(body["current_revision_id"]),
+    )
+
+    assert original is not None
+    assert original.estimated_delay_minutes == 15
+    assert original.revision_number == 1
+
+    assert current is not None
+    assert current.incident_id == incident_id
+    assert current.estimated_delay_minutes == 30
+    assert current.revision_number == 2
+    assert current.verified_by_id == context.user.id
+
+    audit = context.database.scalar(
+        select(IncidentAuditEvent).where(
+            IncidentAuditEvent.incident_id == incident_id,
+            IncidentAuditEvent.action == "incident_revised",
+        )
+    )
+    assert audit is not None
+    assert audit.revision_id == current.id
+    assert audit.incident_version == 2
+    assert audit.report_version == 2
+    assert audit.actor_id == context.user.id
+    assert audit.request_id == response.headers["X-Request-ID"]
+    assert report_record(context).version == 2
+
+
+def test_resolution_preserves_revision_and_records_effective_time(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, revision_id, headers = verified_incident(context)
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/resolve",
+        json=resolution_payload(),
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "resolved"
+    assert body["incident_version"] == 2
+    assert body["current_revision_number"] == 1
+    assert body["current_revision_id"] == str(revision_id)
+
+    context.database.expire_all()
+    incident = context.database.get(Incident, incident_id)
+
+    assert incident is not None
+    assert incident.resolved_by_id == context.user.id
+    assert incident.resolved_at == NOW
+    assert incident.resolution_effective_at == NOW
+    assert incident.resolution_reason == "Synthetic disruption ended."
+    assert context.database.get(IncidentRevision, revision_id) is not None
+
+    audit = context.database.scalar(
+        select(IncidentAuditEvent).where(
+            IncidentAuditEvent.incident_id == incident_id,
+            IncidentAuditEvent.action == "incident_resolved",
+        )
+    )
+    assert audit is not None
+    assert audit.revision_id == revision_id
+    assert audit.incident_version == 2
+    assert audit.request_id == response.headers["X-Request-ID"]
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_lifecycle_rejects_stale_version(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, _, headers = verified_incident(context)
+    payload = amendment_payload(context) if action == "amend" else resolution_payload()
+    payload["expected_version"] = 99
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/{action}",
+        json=payload,
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+
+    context.database.expire_all()
+    incident = context.database.get(Incident, incident_id)
+    assert incident is not None
+    assert incident.version == 1
+    assert incident.status == "active"
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_resolved_incident_rejects_further_changes(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, _, headers = verified_incident(context)
+
+    resolved = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/resolve",
+        json=resolution_payload(),
+        headers=headers,
+    )
+    assert resolved.status_code == 200
+
+    payload = amendment_payload(context) if action == "amend" else resolution_payload()
+    payload["expected_version"] = 2
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/{action}",
+        json=payload,
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+
+
+@pytest.mark.parametrize("seconds", [-1, 1])
+def test_resolution_rejects_invalid_effective_time(
+    review_context: ReviewContext,
+    seconds: int,
+) -> None:
+    context = review_context
+    incident_id, _, headers = verified_incident(context)
+    payload = resolution_payload()
+    payload["resolution_effective_at"] = (NOW + timedelta(seconds=seconds)).isoformat()
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/resolve",
+        json=payload,
+        headers=headers,
+    )
+
+    assert response.status_code == 422
+
+    context.database.expire_all()
+    incident = context.database.get(Incident, incident_id)
+    assert incident is not None
+    assert incident.status == "active"
+    assert incident.version == 1
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_lifecycle_requires_authentication(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, _, _ = verified_incident(context)
+    context.client.cookies.clear()
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/{action}",
+        json=(amendment_payload(context) if action == "amend" else resolution_payload()),
+        headers={"Origin": ORIGIN},
+    )
+
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_lifecycle_requires_specific_permission(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, _, headers = verified_incident(context)
+
+    monkeypatch.setitem(
+        ROLE_PERMISSIONS,
+        RoleCode.CONTROLLER,
+        frozenset({Permission.REPORTS_READ}),
+    )
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/{action}",
+        json=(amendment_payload(context) if action == "amend" else resolution_payload()),
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_audit_failure_rolls_back_lifecycle_change(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, revision_id, headers = verified_incident(context)
+
+    def fail_audit_insert(
+        mapper: object,
+        connection: object,
+        target: IncidentAuditEvent,
+    ) -> None:
+        raise RuntimeError("Synthetic lifecycle audit failure")
+
+    event.listen(IncidentAuditEvent, "before_insert", fail_audit_insert)
+
+    try:
+        response = context.client.post(
+            f"/api/v1/staff/incidents/{incident_id}/{action}",
+            json=(amendment_payload(context) if action == "amend" else resolution_payload()),
+            headers=headers,
+        )
+    finally:
+        event.remove(IncidentAuditEvent, "before_insert", fail_audit_insert)
+
+    assert response.status_code == 500
+
+    context.database.expire_all()
+    incident = context.database.get(Incident, incident_id)
+    assert incident is not None
+    assert incident.status == "active"
+    assert incident.version == 1
+    assert incident.current_revision_number == 1
+    assert incident.resolved_at is None
+
+    revisions = context.database.scalars(
+        select(IncidentRevision).where(IncidentRevision.incident_id == incident_id)
+    ).all()
+    audits = context.database.scalars(
+        select(IncidentAuditEvent).where(IncidentAuditEvent.incident_id == incident_id)
+    ).all()
+
+    assert [revision.id for revision in revisions] == [revision_id]
+    assert len(audits) == 1
+    assert audits[0].action == "report_verified"
+
+
+def allow_audit_access(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
+        ROLE_PERMISSIONS,
+        RoleCode.CONTROLLER,
+        ROLE_PERMISSIONS[RoleCode.CONTROLLER] | {Permission.AUDIT_READ},
+    )
+
+
+def test_report_audit_requires_authentication(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 401
+
+
+def test_report_audit_requires_explicit_permission(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    sign_in(context)
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 403
+
+
+def test_pending_report_has_empty_audit_history(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    sign_in(context)
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+
+    payload = response.json()
+    assert payload["report_id"] == str(context.report_id)
+    assert payload["items"] == []
+    assert payload["total"] == 0
+    assert payload["limit"] == 20
+    assert payload["offset"] == 0
+
+
+def test_report_audit_returns_verified_decision(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    incident_id, revision_id, _ = verified_incident(context)
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+
+    item = payload["items"][0]
+    assert set(item) == {
+        "event_id",
+        "report_id",
+        "incident_id",
+        "revision_id",
+        "actor_id",
+        "action",
+        "reason",
+        "request_id",
+        "report_version",
+        "incident_version",
+        "occurred_at",
+    }
+    assert item["report_id"] == str(context.report_id)
+    assert item["incident_id"] == str(incident_id)
+    assert item["revision_id"] == str(revision_id)
+    assert item["actor_id"] == str(context.user.id)
+    assert item["action"] == "report_verified"
+    assert item["report_version"] == 2
+    assert item["incident_version"] == 1
+
+
+def test_report_audit_includes_rejected_decision(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    headers = sign_in(context)
+
+    decision = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/reject",
+        headers=headers,
+        json={
+            "expected_version": 1,
+            "reason": "Synthetic evidence did not support verification.",
+        },
+    )
+    assert decision.status_code == 200
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    item = payload["items"][0]
+    assert item["action"] == "report_rejected"
+    assert item["incident_id"] is None
+    assert item["revision_id"] is None
+    assert item["incident_version"] is None
+
+
+def test_report_audit_contains_complete_lifecycle(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    incident_id, _, headers = verified_incident(context)
+
+    amendment = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/amend",
+        headers=headers,
+        json=amendment_payload(context),
+    )
+    assert amendment.status_code == 200
+
+    resolution = resolution_payload()
+    resolution["expected_version"] = 2
+
+    resolved = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/resolve",
+        headers=headers,
+        json=resolution,
+    )
+    assert resolved.status_code == 200
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 3
+
+    events_by_action = {item["action"]: item for item in payload["items"]}
+    assert set(events_by_action) == {
+        "report_verified",
+        "incident_revised",
+        "incident_resolved",
+    }
+    assert events_by_action["report_verified"]["incident_version"] == 1
+    assert events_by_action["incident_revised"]["incident_version"] == 2
+    assert events_by_action["incident_resolved"]["incident_version"] == 3
+
+
+def test_report_audit_pagination(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    incident_id, _, headers = verified_incident(context)
+
+    amendment = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/amend",
+        headers=headers,
+        json=amendment_payload(context),
+    )
+    assert amendment.status_code == 200
+
+    path = f"/api/v1/staff/reports/{context.report_id}/audit"
+    first = context.client.get(path, params={"limit": 1, "offset": 0})
+    second = context.client.get(path, params={"limit": 1, "offset": 1})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    first_payload = first.json()
+    second_payload = second.json()
+    assert first_payload["total"] == 2
+    assert second_payload["total"] == 2
+    assert len(first_payload["items"]) == 1
+    assert len(second_payload["items"]) == 1
+    assert first_payload["items"][0]["event_id"] != second_payload["items"][0]["event_id"]
+
+
+def test_report_audit_missing_report_returns_not_found(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    sign_in(context)
+
+    response = context.client.get(f"/api/v1/staff/reports/{uuid4()}/audit")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        {"limit": 0},
+        {"limit": 101},
+        {"offset": -1},
+        {"offset": 10001},
+        {"unexpected": "value"},
+    ],
+)
+def test_report_audit_rejects_invalid_query(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+    query: dict[str, object],
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    sign_in(context)
+
+    response = context.client.get(
+        f"/api/v1/staff/reports/{context.report_id}/audit",
+        params=query,
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_lifecycle_rejects_missing_csrf(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, _, _ = verified_incident(context)
+    payload = amendment_payload(context) if action == "amend" else resolution_payload()
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/{action}",
+        headers={"Origin": ORIGIN},
+        json=payload,
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_lifecycle_rejects_untrusted_origin(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    incident_id, _, headers = verified_incident(context)
+    payload = amendment_payload(context) if action == "amend" else resolution_payload()
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/{action}",
+        headers={
+            **headers,
+            "Origin": "https://untrusted.example",
+        },
+        json=payload,
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize("action", ["amend", "resolve"])
+def test_lifecycle_missing_incident_returns_not_found(
+    review_context: ReviewContext,
+    action: str,
+) -> None:
+    context = review_context
+    headers = sign_in(context)
+    payload = amendment_payload(context) if action == "amend" else resolution_payload()
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{uuid4()}/{action}",
+        headers=headers,
+        json=payload,
+    )
+
+    assert response.status_code == 404
+
+
+def test_invalid_amendment_scope_preserves_current_revision(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    incident_id, original_revision_id, headers = verified_incident(context)
+    payload = amendment_payload(context)
+
+    approved = payload["approved"]
+    assert isinstance(approved, dict)
+    approved["arrival_stop_sequence"] = 99
+
+    response = context.client.post(
+        f"/api/v1/staff/incidents/{incident_id}/amend",
+        headers=headers,
+        json=payload,
+    )
+
+    assert response.status_code == 422
+
+    context.database.expire_all()
+    incident = context.database.get(Incident, incident_id)
+    assert incident is not None
+    assert incident.version == 1
+    assert incident.current_revision_number == 1
+
+    revisions = context.database.scalars(
+        select(IncidentRevision).where(IncidentRevision.incident_id == incident_id)
+    ).all()
+    assert [revision.id for revision in revisions] == [original_revision_id]
+
+    audits = context.database.scalars(
+        select(IncidentAuditEvent).where(IncidentAuditEvent.incident_id == incident_id)
+    ).all()
+    assert len(audits) == 1
+    assert audits[0].action == "report_verified"
+
+
+def test_audit_access_is_denied_after_role_assignment_is_removed(
+    review_context: ReviewContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = review_context
+    allow_audit_access(monkeypatch)
+    sign_in(context)
+
+    context.database.execute(delete(UserRole).where(UserRole.user_id == context.user.id))
+    context.database.flush()
+
+    response = context.client.get(f"/api/v1/staff/reports/{context.report_id}/audit")
+
+    assert response.status_code == 401

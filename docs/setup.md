@@ -41,18 +41,18 @@ Stop the backend server before syncing dependencies on Windows.
 Select `backend\.venv\Scripts\python.exe` through
 `Python: Select Interpreter` in VS Code.
 
-If PowerShell blocks activation, allow scripts for the current terminal:
+If PowerShell blocks activation:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 .\backend\.venv\Scripts\Activate.ps1
 ```
 
-Activate the backend environment in each terminal that runs backend commands.
+Activate the backend environment in each terminal running backend commands.
 
 ## Local configuration
 
-For a fresh checkout, create the local configuration file once:
+For a fresh checkout, create local configuration once:
 
 ```powershell
 Copy-Item .env.example .env
@@ -66,7 +66,8 @@ Generate a local database password:
 python -c "import secrets; print(secrets.token_hex(24))"
 ```
 
-Open `.env` and assign that generated value to `POSTGRES_PASSWORD`.
+Open `.env` and assign the generated value to `POSTGRES_PASSWORD`.
+
 Keep this database URL:
 
 ```dotenv
@@ -81,7 +82,7 @@ RAILCONNECT_ENVIRONMENT=development
 RAILCONNECT_DEBUG=false
 ```
 
-For local HTTP staff authentication and submission limits, include:
+For local HTTP authentication and reporting, include:
 
 ```dotenv
 RAILCONNECT_SESSION_COOKIE_NAME=railconnect_session
@@ -98,7 +99,7 @@ RAILCONNECT_REPORT_CLIENT_MAX_ATTEMPTS=5
 
 Use the same non-secret setting names in `.env.example`.
 Leave its database password blank.
-Keep the actual database password only in ignored local configuration.
+Keep the actual password only in ignored local configuration.
 
 The `.env` file is ignored by Git.
 Environment variables override values from `.env`.
@@ -106,11 +107,11 @@ Run backend commands from the repository root so configuration is found.
 
 Restart the backend after changing configuration.
 
-PostgreSQL uses the configured password when initializing a new data volume.
-Changing `.env` alone does not change the password in an existing database.
+PostgreSQL uses the configured password when initializing a new volume.
+Changing `.env` alone does not change an existing database password.
 
-Production requires HTTPS, Secure cookies and explicitly configured HTTPS
-origins. Local HTTP settings must not be reused as production configuration.
+Production requires HTTPS, Secure cookies and configured HTTPS origins.
+Local HTTP settings must not be reused as production configuration.
 Deployment must configure trusted proxies correctly.
 
 ## Start PostgreSQL
@@ -135,8 +136,8 @@ Expected database and user: `railconnect`.
 The local database listens on `127.0.0.1:5433`.
 Its data persists in a Docker volume.
 
-If database tests stop with a connection timeout, check Docker Desktop,
-the container status and the application connection before changing code.
+If tests stop with a connection timeout, check Docker Desktop,
+container health and the application connection before changing code.
 
 ## Migrations and demonstration data
 
@@ -155,64 +156,57 @@ python scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-
 python scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-10-18
 ```
 
-On a fresh database, the first station seed inserts 30 stations.
-The second reports 0 inserted and 30 already present.
+On a fresh database, station seeding inserts 30 stations.
+The second invocation reports 0 inserted and 30 already present.
 
 The first timetable seed inserts 12 demonstration services and 42 stops.
 Repeated seeding inserts nothing and verifies existing records.
 Conflicting data causes an error and rolls back the import transaction.
 
-Timetable preview validates the dataset and compares database records
-without writing changes. Conflicts produce a nonzero exit status.
+Preview validates the dataset and compares database records without writing.
+Conflicts produce a nonzero exit status.
 
-The timetable seed command registers source provenance and a successful
-import summary in the same transaction as timetable verification/seeding.
+Timetable seeding registers provenance and a successful import summary
+in the same transaction as timetable verification/seeding.
+
 Repeated imports preserve the original summary.
+When registering an already-seeded timetable, the summary records matching
+services as existing rather than newly inserted.
 
-When registering a timetable that was already seeded, the first summary
-records the matching services as existing rather than newly inserted.
+Source metadata is in `data/processed/demo_timetable.source.json`.
+The timetable source reference is `demo-timetable-v1`.
 
-Source metadata is stored in `data/processed/demo_timetable.source.json`.
-The content hash identifies the exact timetable file bytes.
-Changed content or metadata under an existing source reference is rejected.
-
-Both preview and import require the dataset and source metadata files.
-The seed command requires a development or test environment.
-
-Processed JSON files use LF line endings through `.gitattributes`.
-Preserve those line endings to keep content hashes consistent.
-
-For demonstration imports, omitted boarding and alighting permissions
+For this demonstration importer, omitted boarding and alighting permissions
 follow the presence of departure and arrival times respectively.
-Explicit permission values are preserved.
+Explicit values are preserved.
 
 Dated runs must be prepared before journey search can return them.
-On a fresh run table, the example above creates 70 runs.
+On a fresh run table, the example creates 70 runs.
 Repeating it verifies 70 existing runs and inserts nothing.
-The 14 skipped service dates reflect weekday and weekend operating rules.
+Fourteen service dates are skipped according to operating rules.
 
-The materialization command supports at most 31 days per invocation
-and requires a development or test environment.
-Prepare other date ranges explicitly within the timetable's validity period.
-All writes in one invocation are committed together or rolled back.
+Materialization supports at most 31 days per invocation.
+It requires a development or test environment.
+Prepare other ranges explicitly within timetable validity.
+Writes in one invocation commit together or roll back.
 
-Run stops store scheduled timestamps in UTC.
+Run-stop scheduled timestamps are stored in UTC.
 Search uses the passenger's boarding date in Asia/Colombo.
 An overnight run may have started on the previous date.
 Search does not create runs.
 
-Timetable schedules are fictional and include daily, weekday, weekend,
+Schedules are fictional and include daily, weekday, weekend,
 reverse-direction and overnight examples.
 
-These are selected demonstration stations, not the complete railway network.
+These are selected stations, not the complete railway network.
 Codes beginning with `DEMO_` are project identifiers.
 The data does not provide live timetables or service updates.
 
-See `docs/data-card.md` for coverage, limitations and update procedures.
+See `docs/data-card.md` for coverage and limitations.
 
 ## Start the backend
 
-In a dedicated terminal, starting from the repository root:
+In a dedicated terminal, from the repository root:
 
 ```powershell
 .\backend\.venv\Scripts\Activate.ps1
@@ -227,14 +221,14 @@ Keep that terminal running.
 - Stations: http://127.0.0.1:8000/api/v1/stations
 
 Liveness returns `{"status":"ok"}`.
-Database readiness returns `{"status":"ready"}` when its checks succeed.
+Readiness returns `{"status":"ready"}` when checks succeed.
 
 Request logs appear as JSON in the backend terminal.
 Stop the server with Ctrl+C.
 
 ## Frontend installation and startup
 
-In a separate terminal, starting from the repository root:
+In another terminal, from the repository root:
 
 ```powershell
 Set-Location frontend
@@ -248,18 +242,18 @@ Use `npm ci` after a fresh checkout or dependency changes.
 An existing installed environment only needs `npm run dev`.
 
 Vite forwards `/api` requests to the local backend during development.
-The backend must be running to load stations, journeys and staff sessions.
+The backend must be running for stations, journeys and staff sessions.
 Deployment requires its own API routing configuration.
 
 ## Journey search and details
 
-The search endpoint is:
+Search endpoint:
 
 ```text
 GET /api/v1/journeys
 ```
 
-Journey search uses:
+Parameters:
 
 - departure_station_id
 - arrival_station_id
@@ -271,57 +265,58 @@ Journey search uses:
 It may differ from the run's starting `service_date`.
 
 `arrive_before` is a local time without a timezone suffix.
-Without `arrival_date`, its deadline applies on `travel_date`.
-For an overnight arrival, supply the intended arrival date explicitly.
+Without `arrival_date`, the deadline applies on `travel_date`.
+For overnight arrival, supply the intended arrival date explicitly.
 
 The deadline is inclusive.
-An arrival date requires an arrival time and cannot precede the travel date.
+An arrival date requires an arrival time and cannot precede travel date.
 
 Search returns persisted run IDs and departure/arrival stop sequences.
 Cancelled runs and disallowed boarding/alighting choices are excluded.
-Restricted runs carry an explicit status; detailed disruption eligibility
-rules belong to the later disruption workflow.
 
-The detail endpoint is:
+Restricted runs carry explicit status.
+Detailed disruption eligibility belongs to the disruption feature.
+
+Detail endpoint:
 
 ```text
 GET /api/v1/journeys/{run_id}
 ```
 
-Optional segment query parameters must be supplied together:
+Optional segment parameters must be supplied together:
 
 - departure_stop_sequence
 - arrival_stop_sequence
 
-Details include ordered scheduled stops, passenger permissions, run status,
-version and registered source metadata.
+Details include ordered scheduled stops, passenger permissions,
+run status, version and registered source metadata.
 
-Cancelled runs remain viewable in details with their status.
-Viewing a cancelled schedule does not make it a feasible journey.
+Cancelled runs remain viewable with their status.
+Viewing their schedule does not make them feasible journeys.
 
 Unregistered provenance returns `source: null`.
-The UI explains that missing metadata does not establish freshness.
+Missing metadata does not establish freshness.
 
-Source registration and retrieval times are not live railway update times.
+Registration and retrieval times are not live railway update times.
 
 ## Staff identity and local testing
 
-Apply the database migrations before provisioning staff accounts.
+Apply migrations before provisioning accounts.
 
-From the repository root, with the backend environment active:
+From the repository root, with the environment active:
 
 ```powershell
 python scripts/provision_staff.py --username local_controller --display-name "Local Controller" --role controller
 ```
 
 Enter and confirm a password containing 15 to 128 characters.
-Password input is hidden in the terminal.
-Store the password privately; do not put it in Git or shared screenshots.
+Input is hidden.
+Keep the password private and out of Git and shared screenshots.
 
-The command creates an individual account and role assignment.
-It rejects an existing username rather than replacing its password or role.
+Provisioning creates an individual account and role assignment.
+It rejects an existing username rather than replacing password or role.
 
-Supported initial roles are controller and administrator.
+Initial roles are controller and administrator.
 Administrator permissions are explicitly mapped.
 
 To create a separate local test account:
@@ -330,42 +325,43 @@ To create a separate local test account:
 python scripts/provision_staff.py --username local_controller_test --display-name "Local Test Controller" --role controller
 ```
 
-Use a new username if that account already exists.
+Choose another username if it already exists.
 Provisioning does not provide a password-reset workflow.
 
 Open http://127.0.0.1:5173 and select Staff access.
-Sign in using the account and password you provisioned.
+Sign in with the account and password you provisioned.
 
-Staff access displays the account, roles, permissions and absolute expiry.
-Browser refresh and reopening Staff access restore a valid session.
-Refresh session checks the current account and session against the backend.
+Staff access displays account, roles, permissions and absolute expiry.
+Refreshing the browser or reopening Staff access restores a valid session.
+Refresh session checks the current account/session against the backend.
 
-The default absolute lifetime is eight hours.
-The default idle timeout is thirty minutes.
-The server enforces both limits.
+Default absolute lifetime is eight hours.
+Default idle timeout is thirty minutes.
+The server enforces both.
 
 Sign out revokes the session and clears its cookie.
-An unconfirmed sign-out displays an error rather than reporting success.
+Unconfirmed sign-out displays an error rather than claiming success.
 
 Journey search remains public.
-The report-review API is protected.
-Its staff interface and timetable management interfaces remain pending.
+Incident management APIs are protected.
+Incident management and timetable management interfaces remain pending.
 
-Authentication endpoints are:
+Authentication endpoints:
 
 - POST /api/v1/auth/login
 - GET /api/v1/auth/me
 - POST /api/v1/auth/logout
 
 Login requires JSON and a configured browser Origin.
-Authenticated mutations require an allowed Origin and the session CSRF token.
-The frontend sends cookies through same-origin API requests via the Vite proxy.
+Authenticated mutations require an allowed Origin and session-bound CSRF token.
 
-Session tokens are delivered through HTTP-only cookies.
+The frontend sends cookies through same-origin requests via the Vite proxy.
+
+Authentication tokens are delivered through HTTP-only cookies.
 The database stores their hashes.
 The frontend does not persist session or CSRF state in localStorage.
 
-The default login limits are 30 attempts per client and 5 per account
+Default login limits are 30 attempts per client and 5 per account
 within a five-minute window.
 
 ## Identity-record cleanup
@@ -376,49 +372,46 @@ Preview eligible records:
 python scripts/cleanup_identity.py
 ```
 
-The default preview does not delete records.
+Default preview does not delete records.
 
-Apply one bounded cleanup batch explicitly:
+Apply one bounded batch explicitly:
 
 ```powershell
 python scripts/cleanup_identity.py --apply
 ```
 
-Default retention is seven days for expired or revoked sessions and one day
-for expired login-rate windows.
+Default retention is seven days for expired/revoked sessions
+and one day for expired login-rate windows.
 
-The default batch limit is 500 records per table.
-For supported options, run:
+Default batch limit is 500 records per table.
 
 ```powershell
 python scripts/cleanup_identity.py --help
 ```
 
-Cleanup preserves users, role assignments, current sessions and current
-rate-limit windows.
+Cleanup preserves users, role assignments, current sessions and current windows.
 
-Deletion first selects and locks a bounded list of keys.
-Only those selected records are deleted.
+Deletion selects and locks bounded keys before deleting those exact records.
 Applied changes are transactional.
 
-Authentication rejects expired and revoked sessions even before cleanup.
-Cleanup is operator-run; deployment scheduling remains to be configured.
+Authentication rejects expired/revoked sessions before cleanup.
+Deployment scheduling remains to be configured.
 
 ## Passenger report submission
 
-The submission endpoint is:
+Endpoint:
 
 ```text
 POST /api/v1/reports
 ```
 
-Submission requires JSON and an explicitly configured browser Origin.
+Requires JSON and a configured browser Origin.
 
 Required fields:
 
 - title: 1 to 160 characters after boundary whitespace removal.
 - narrative: 1 to 4000 characters after boundary whitespace removal.
-- observed_at: a timezone-aware timestamp.
+- observed_at: timezone-aware timestamp.
 
 Optional scope hints:
 
@@ -428,91 +421,92 @@ Optional scope hints:
 - arrival_stop_sequence_hint
 
 Segment endpoints must be supplied together and belong to the hinted run.
-The arrival stop sequence must follow the departure stop sequence.
+Arrival sequence must follow departure sequence.
 
-A station hint must identify an active station.
-When combined with a run or segment, it must belong to that scope.
+Station hints must identify active stations.
+When combined with a run or segment, the station must belong to that scope.
 
 Cancelled and restricted runs can still be reported.
-Report acceptance does not establish journey feasibility.
+Acceptance does not establish journey feasibility.
 
 Observation time cannot be in the future.
-Scope hints remain unverified until staff review.
+Hints remain unverified until staff review.
 
 Passengers cannot supply status, reviewer identity, review reasons,
 approved delay values or submission timestamps.
 
-Successful submission returns HTTP 201 and a pending receipt containing:
+Successful submission returns HTTP 201 with:
 
 - report_id
 - status
 - submitted_at
 - message
 
-The receipt excludes the narrative, staff identity and private review fields.
+The pending receipt excludes narrative and private review fields.
 Submission does not create approved operational evidence or change journeys.
 
-Anonymous passengers may submit.
-When a staff cookie is present, valid authentication and the session
+Anonymous submission is permitted.
+
+When a staff cookie is present, valid authentication and the session-bound
 CSRF token are required. Staff identity is derived on the server.
 
-An invalid or expired staff cookie does not silently become anonymous access.
+Invalid or expired staff cookies do not silently become anonymous access.
 
-Report limits use these settings:
+Report limits use:
 
 ```dotenv
 RAILCONNECT_REPORT_RATE_WINDOW_SECONDS=3600
 RAILCONNECT_REPORT_CLIENT_MAX_ATTEMPTS=5
 ```
 
-The default is five attempts per client within a one-hour window.
-Report limits use separate database counters from staff login limits.
-Rejected limited submissions return 429 with Retry-After.
+The default is five attempts per client within one hour.
+These counters are separate from login counters.
+Rate rejection returns 429 with Retry-After.
 
-Attempts reaching the submission service are counted separately from
-report creation. A failed report transaction does not reset its counter.
-Malformed bodies are rejected by API validation before the service.
+Attempts reaching the service are counted separately from report creation.
+Failed report creation does not reset the counter.
+Malformed bodies are rejected before the service.
 
 The submission API is implemented.
 The passenger reporting interface remains pending.
 
 ## Protected staff report queue
 
-The queue endpoint is:
+Endpoint:
 
 ```text
 GET /api/v1/staff/reports?limit=20&offset=0
 ```
 
-Access requires a valid staff session and reports.read.
-The queue service also checks that permission.
+Requires a valid staff session and reports.read.
+The queue service also checks permission.
 
 Only pending reports are returned.
-Ordering is by submitted_at followed by report ID, oldest first.
+Ordering is oldest submission first, then report ID.
 
-Pagination defaults to 20 items and offset 0.
-The limit must be between 1 and 100.
-The offset must be between 0 and 10000.
+Pagination defaults to limit 20 and offset 0.
+Limit must be 1 through 100.
+Offset must be 0 through 10000.
 
-The response contains:
+Response fields:
 
 - items
 - total
 - limit
 - offset
 
-Each item includes the report ID, narrative, timestamps, scope hints,
+Each item includes report ID, narrative, timestamps, scope hints,
 pending status and current report version.
 
-The narrative is an unverified passenger claim.
+Narrative is an unverified claim.
 This is a protected staff response, not a public incident response.
 
 Reading the queue does not change report state.
-Successful queue responses use Cache-Control: no-store.
+Successful responses use Cache-Control: no-store.
 
 ## Protected verification and rejection
 
-Available endpoints:
+Endpoints:
 
 ```text
 POST /api/v1/staff/reports/{report_id}/verify
@@ -521,24 +515,22 @@ POST /api/v1/staff/reports/{report_id}/reject
 
 Both require:
 
-- A valid staff session cookie.
+- Valid staff session cookie.
 - reports.review permission.
-- An explicitly allowed Origin.
-- The session token in the X-CSRF-Token header.
-- A JSON request body.
+- Allowed Origin.
+- Session-bound CSRF token in X-CSRF-Token.
+- JSON request body.
 
-The CSRF token is separate from the HTTP-only authentication cookie.
-Use the csrf_token returned by login or the current-session endpoint.
+Use `csrf_token` returned by login or the current-session endpoint.
+It is separate from the HTTP-only authentication cookie.
 
-The service rechecks the current account and role permissions.
+The service rechecks current account and role permissions.
 Identified staff submitters cannot review their own reports.
 
-The server derives reviewer identity, decision time and audit request ID.
+Reviewer identity, decision time and audit request ID are server-derived.
 Do not supply reviewer IDs, review timestamps or status fields.
 
-### Rejection request
-
-Supply the report's current version and a nonempty reason:
+### Rejection
 
 ```json
 {
@@ -547,47 +539,43 @@ Supply the report's current version and a nonempty reason:
 }
 ```
 
-Reasons are stripped of boundary whitespace and limited to 2000 characters.
-Expected versions must be positive integers.
+Reasons are nonempty after boundary whitespace removal and limited
+to 2000 characters. Versions must be positive integers.
 
-Rejection increments the report version and records an audit event.
+Rejection increments report version and records an audit event.
 It does not create an incident.
 
-### Verification request
+### Verification
 
-Supply:
-
-- expected_version
-- reason
-- approved
+Supply expected_version, reason and approved.
 
 The approved object contains:
 
-- run_id: an existing prepared dated run.
+- run_id: existing prepared dated run.
 - scope_kind: run or segment.
 - departure_stop_sequence and arrival_stop_sequence for segment scope.
 - impact_kind: cancellation, restriction or delay.
 - estimated_delay_minutes for delay impact.
-- effective_from and effective_until as timezone-aware timestamps.
+- effective_from and effective_until as aware timestamps.
 - public_summary: 1 to 1000 characters.
 - evidence_basis: 1 to 2000 characters.
 
-Whole-run scope must omit segment endpoints or set both to null.
-Segment scope requires both endpoints, ordered and belonging to the run.
+Whole-run scope omits endpoints or sets both to null.
+Segment scope requires ordered endpoints belonging to the run.
 
 Cancellation requires whole-run scope.
-Delay requires integer estimated_delay_minutes between 1 and 1440.
+Delay requires integer minutes between 1 and 1440.
 Cancellation and restriction must not contain estimated delay minutes.
 
-The effective end must follow the effective start.
-Approved timestamps are normalized to UTC when stored.
+Effective end must follow effective start.
+Approved timestamps are normalized to UTC.
 
-Staff must explicitly approve facts independently of passenger hints.
-A passenger narrative is not an approved delay estimate.
+Staff explicitly approve facts independently of passenger hints.
+Narrative is not an approved delay estimate.
 
-### Decision results and errors
+### Results and errors
 
-Successful verification and rejection return HTTP 200 with:
+Successful decisions return HTTP 200 with:
 
 - report_id
 - status
@@ -597,91 +585,272 @@ Successful verification and rejection return HTTP 200 with:
 - incident_version
 
 Rejection returns null incident and revision references.
-Verification returns the newly created incident and initial revision.
+Verification returns the new incident and initial revision.
 
-Verification creates the report decision, incident, initial revision
-and audit event in one business transaction.
+Verification writes decision, incident, revision and audit atomically.
+Rejection writes decision and audit atomically.
 
-Rejection creates the report decision and audit event in one transaction.
+Audit records include actor, reason, versions and server-generated request ID.
+Business failure rolls back the complete decision.
+Authentication uses a separate transaction.
 
-Audit events record the authenticated actor, reason, resulting versions
-and server-generated request ID.
-
-A business failure rolls back the entire decision.
-Authentication activity uses a separate transaction.
-
-Error responses use the existing safe error envelope:
+Errors use the safe error envelope:
 
 - 401: missing or invalid authentication.
 - 403: insufficient permission, invalid Origin/CSRF or identified self-review.
 - 404: report does not exist.
-- 409: stale expected version or report already reviewed.
-- 422: invalid input or approved run/segment references.
+- 409: stale version or report already reviewed.
+- 422: invalid input or approved scope references.
 
-Concurrent review attempts permit one successful decision.
-The other receives a version conflict rather than overwriting the decision.
+Concurrent review permits one successful decision and one conflict.
+Successful responses use Cache-Control: no-store.
 
-Successful decision responses use Cache-Control: no-store.
+## Protected incident amendments
 
-The review APIs are implemented.
-Amendment, resolution, public incident responses and staff review interfaces
-remain subsequent implementation stages.
+Endpoint:
+
+```text
+POST /api/v1/staff/incidents/{incident_id}/amend
+```
+
+Requires a valid staff cookie, incidents.edit, allowed Origin
+and session-bound CSRF token in X-CSRF-Token.
+
+Supply JSON containing:
+
+- expected_version: current incident version.
+- reason: nonempty reason, limited to 2000 characters.
+- approved: complete replacement approved facts.
+
+The approved object uses the verification contract.
+Do not send only the changed field.
+
+Example:
+
+```json
+{
+  "expected_version": 1,
+  "reason": "Updated synthetic evidence supports this estimate.",
+  "approved": {
+    "run_id": "REPLACE_WITH_PREPARED_RUN_UUID",
+    "scope_kind": "run",
+    "impact_kind": "delay",
+    "estimated_delay_minutes": 30,
+    "effective_from": "2026-10-18T10:00:00+05:30",
+    "effective_until": "2026-10-18T14:00:00+05:30",
+    "public_summary": "Synthetic demonstration delay.",
+    "evidence_basis": "Controller-reviewed synthetic test evidence."
+  }
+}
+```
+
+Replace the UUID placeholder before sending.
+The example is synthetic, not a live railway update.
+
+The service rechecks current account and permission, locks the incident
+and checks active state and expected version.
+
+Success creates a new immutable approved revision, increments incident version
+and current revision number, and writes an audit event in one transaction.
+
+Previous revisions are preserved.
+The originating report's completed review version is unchanged.
+
+## Protected incident resolution
+
+Endpoint:
+
+```text
+POST /api/v1/staff/incidents/{incident_id}/resolve
+```
+
+Requires a valid staff cookie, incidents.resolve, allowed Origin
+and session-bound CSRF token in X-CSRF-Token.
+
+Example JSON:
+
+```json
+{
+  "expected_version": 1,
+  "reason": "The synthetic disruption has ended.",
+  "resolution_effective_at": "2026-10-18T11:00:00+05:30"
+}
+```
+
+Use the actual current incident version and an appropriate aware timestamp.
+
+Effective resolution time cannot be in the future relative to the server's
+decision clock or earlier than the current revision's effective start.
+
+Backdating within those bounds is permitted.
+
+Resolution records actor, reason, decision time and effective resolution time.
+It increments incident version, preserves the current revision and writes
+its audit event atomically.
+
+Only active incidents may be amended or resolved.
+Resolved incidents reject further changes.
+No reopening workflow is implemented.
+
+Audit insertion failure rolls back the complete business operation.
+
+Successful amendment and resolution responses contain:
+
+- incident_id
+- originating_report_id
+- status
+- incident_version
+- current_revision_number
+- current_revision_id
+
+Successful responses use Cache-Control: no-store.
+
+Lifecycle errors:
+
+- 401: missing or invalid authentication.
+- 403: insufficient permission or invalid Origin/CSRF.
+- 404: incident does not exist.
+- 409: stale version or incident already resolved.
+- 422: invalid input, scope references or lifecycle timestamps.
+- 503: required originating report or current revision history is inconsistent.
+
+Concurrent changes using the same version permit one successful change
+and one conflict.
+
+Tested races are amendment/amendment, amendment/resolution
+and resolution/resolution.
+
+Lifecycle operations preserve original scheduled run-stop timestamps.
+Their journey effects remain a later integration.
+
+## Protected report audit history
+
+Endpoint:
+
+```text
+GET /api/v1/staff/reports/{report_id}/audit?limit=20&offset=0
+```
+
+Requires a valid staff session and audit.read.
+
+Administrators have audit.read under the current mapping.
+Controllers do not have it by default.
+
+For local testing, provision an administrator interactively:
+
+```powershell
+python scripts/provision_staff.py --username local_audit_admin --display-name "Local Audit Administrator" --role administrator
+```
+
+Choose another username if it already exists.
+Keep the password private.
+
+This creates a test account, not an audit frontend.
+
+History is retrieved by report ID.
+It includes rejected reports without incidents.
+Pending reports may have empty history.
+Missing reports return 404.
+
+Response fields:
+
+- report_id
+- items
+- total
+- limit
+- offset
+
+Each item includes:
+
+- event_id
+- report_id
+- incident_id
+- revision_id
+- actor_id
+- action
+- reason
+- request_id
+- report_version
+- incident_version
+- occurred_at
+
+These are private management fields, not a public incident response.
+
+Events are ordered by occurrence time and event ID.
+For equal timestamps, event ID is a stable tie-breaker rather than causal order.
+Use versions and references when interpreting lifecycle changes.
+
+Pagination defaults to limit 20 and offset 0.
+Limits are 1 through 100.
+Offsets are 0 through 10000.
+Unknown query fields are rejected.
+
+Successful responses use Cache-Control: no-store.
+
+Missing authentication returns 401.
+Insufficient permission returns 403.
+Removing the user's only staff role invalidates authentication and returns 401.
 
 ## Incident storage and history
 
-Migration `5c23c99becea` adds:
+Migration 5c23c99becea adds:
 
 - incident_reports
 - incidents
 - incident_revisions
 - incident_audit_events
 
-Migration `af88e86de607` adds report_rate_limits.
+Migration af88e86de607 adds report_rate_limits.
 
-The current migration head is `af88e86de607`.
-The protected review workflow requires no additional migration.
+Current migration head: af88e86de607.
 
-Passenger claims are stored separately from approved operational facts.
-Revision records identify the approved run or segment, effective interval,
+Protected review, lifecycle and audit-read workflows require no
+additional migration.
+
+Passenger claims are separate from approved operational facts.
+
+Revision records identify approved run/segment, effective interval,
 impact, evidence basis and verification actor.
 
-Database triggers reject updates, deletes and truncation of revision
-and audit history. Transaction rollback remains supported.
+Database triggers reject revision/audit updates, deletes and truncation.
+Transaction rollback remains supported.
 
 Verification creates incident version 1 and revision number 1.
-Subsequent amendments must preserve previous revisions.
+Amendment creates another approved revision.
+Resolution preserves the selected revision and increments incident version.
+
+Public incident responses and passenger/staff incident interfaces remain pending.
 
 Verified incident records do not yet change journey results.
 That integration belongs to the disruption feature.
 
 ## Report-limit cleanup
 
-Preview old report counters:
+Preview old counters:
 
 ```powershell
 python scripts/cleanup_report_limits.py
 ```
 
-Apply a bounded deletion batch explicitly:
+Apply one bounded batch:
 
 ```powershell
 python scripts/cleanup_report_limits.py --apply
 ```
 
-Default retention is one day after the counter window expires.
-The default batch limit is 500 records.
-
-Available options include --retention-days and --batch-limit:
+Default retention is one day after window expiry.
+Default batch limit is 500 records.
 
 ```powershell
 python scripts/cleanup_report_limits.py --help
 ```
 
-Retention must be between 1 and 365 days.
-Batch limits must be between 1 and 1000.
+Options include --retention-days and --batch-limit.
+Retention must be 1 through 365 days.
+Batch limit must be 1 through 1000.
 
-Cleanup preserves current windows and does not delete reports or login counters.
-Selected deletion keys are locked and bounded before deletion.
+Cleanup preserves current windows, reports and login counters.
+Deletion keys are selected, locked and bounded before deletion.
 Applied changes are transactional.
 
 Deployment must arrange an operator procedure or cleanup schedule.
@@ -699,25 +868,26 @@ python -m alembic -c backend/alembic.ini check
 python -m pytest -c backend/pyproject.toml --tb=short
 ```
 
-Run PostgreSQL and apply migrations before running database tests.
+Run PostgreSQL and apply migrations before database tests.
 
-Most database tests use isolated fixtures and roll back their changes.
+Most database tests use fixtures that roll back changes.
 Rate-limit concurrency tests use independent connections and committed
 test records, then remove their own generated records.
 
-The review concurrency test creates a uniquely named temporary schema
-from model metadata, runs independent transactions and removes the schema.
+Review/lifecycle concurrency tests create uniquely named temporary schemas
+from model metadata, use independent transactions and remove those schemas.
 
-Its development/test database account requires CREATE permission
-on the database so it can create the temporary schema.
+The development/test database account needs CREATE permission on the database.
 
-This test checks concurrent review transactions.
-Migration-installed history triggers are covered separately by the
+Four cases cover verification/rejection, amendment/amendment,
+amendment/resolution and resolution/resolution.
+
+Migration-installed history triggers are checked separately by
 incident immutability tests.
 
-Cleanup tests exercise deletion inside rollback-isolated transactions.
+Cleanup tests use rollback-isolated transactions.
 
-Never configure tests to use a deployed production database.
+Never configure tests against a deployed production database.
 
 ## Frontend checks
 
@@ -730,21 +900,21 @@ npm test
 ```
 
 The build includes TypeScript checking.
-Frontend component tests substitute API responses.
+Component tests substitute API responses.
 They do not require the backend or PostgreSQL.
 
 ## Linux and macOS differences
 
-Use a compatible Python 3.13 installation, Node and Docker Compose.
+Use compatible Python 3.13, Node and Docker Compose installations.
 
-Install uv in a separate tool environment:
+Install uv separately:
 
 ```bash
 python3.13 -m venv "$HOME/.local/share/railconnect-tools/uv"
 "$HOME/.local/share/railconnect-tools/uv/bin/python" -m pip install "uv==0.13.0"
 ```
 
-From the repository root, create and sync the backend environment:
+From the repository root:
 
 ```bash
 python3.13 -m venv --prompt RailConnect-AI backend/.venv
@@ -752,52 +922,52 @@ python3.13 -m venv --prompt RailConnect-AI backend/.venv
 source backend/.venv/bin/activate
 ```
 
-Create local configuration only for a fresh checkout:
+Create configuration only for a fresh checkout:
 
 ```bash
 cp .env.example .env
 ```
 
-Generate and configure the database password as described above.
-Configure staff session and rate-limit settings for the intended environment.
+Generate and configure the password as described above.
+Configure session and rate-limit settings for the intended environment.
 
 Python, Docker Compose and npm commands otherwise follow the same workflow.
-Use `/` path separators and `backend/.venv/bin/python` for explicit
-interpreter paths.
+Use `/` separators and `backend/.venv/bin/python` for explicit interpreter paths.
 
-Check dependency compatibility with:
+Check dependencies with:
 
 ```bash
 "$HOME/.local/share/railconnect-tools/uv/bin/uv" pip check --python backend/.venv/bin/python
 ```
 
-This documents platform differences; it does not claim that a separate
-macOS clean-checkout verification has been performed.
+These instructions document platform differences.
+They do not claim separate macOS clean-checkout verification.
 
 ## Dependency changes
 
 Declare backend dependencies in `backend/pyproject.toml`.
-After an intentional dependency change on Windows:
+
+After an intentional change on Windows:
 
 ```powershell
 & "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" lock --project backend
 & "$env:LOCALAPPDATA\RailConnectTools\uv\Scripts\uv.exe" sync --project backend --extra dev --locked
 ```
 
-Run checks and commit the updated `pyproject.toml` and `uv.lock`.
+Run checks and commit `pyproject.toml` and `uv.lock`.
 
-Use npm from the frontend directory to change frontend dependencies.
+Change frontend dependencies with npm from the frontend directory.
 Commit both `package.json` and `package-lock.json`.
 
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on pushes and pull requests.
 
-Backend checks use the committed uv lockfile and a temporary PostgreSQL
-database. Frontend checks use `npm ci` and the committed npm lockfile.
+Backend checks use the committed uv lockfile and temporary PostgreSQL.
+Frontend checks use `npm ci` and the committed npm lockfile.
 
-CI runs lint, formatting where configured, type checking, migrations,
+CI runs lint, configured formatting checks, type checking, migrations,
 schema checks, station seeding, timetable preview/import, dated-run
-materialization, backend tests, frontend tests and the frontend build.
+materialization, backend tests, frontend tests and production build.
 
-CI does not establish that deployment or assistant evaluation is complete.
+CI does not establish deployment or assistant evaluation completion.
