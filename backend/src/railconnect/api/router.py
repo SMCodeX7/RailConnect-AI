@@ -8,6 +8,7 @@ from railconnect.modules.incidents.report_routes import router as reports_router
 from railconnect.modules.incidents.review_routes import router as review_router
 from railconnect.modules.journeys.routes import router as journeys_router
 from railconnect.modules.stations.routes import router as stations_router
+from railconnect.modules.timetable.staff_import_routes import router as staff_timetable_router
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(stations_router)
@@ -18,3 +19,4 @@ router.include_router(review_router)
 router.include_router(lifecycle_router)
 router.include_router(audit_router)
 router.include_router(public_incidents_router)
+router.include_router(staff_timetable_router)

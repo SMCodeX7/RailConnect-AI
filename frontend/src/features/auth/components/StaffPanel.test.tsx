@@ -90,7 +90,7 @@ describe('Staff panel', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('restores the account and displays its permissions', async () => {
+    it('restores the account and displays its permissions', async () => {
     restoreMock.mockResolvedValue(sessionFixture())
 
     render(<StaffPanel />)
@@ -100,9 +100,30 @@ describe('Staff panel', () => {
     expect(screen.getByText('Review passenger reports')).toBeInTheDocument()
     expect(screen.getByText('Resolve verified incidents')).toBeInTheDocument()
     expect(screen.queryByText('Manage timetable imports')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Timetable import' }),
+    ).not.toBeInTheDocument()
     expect(screen.queryByText('View audit history')).not.toBeInTheDocument()
     expect(screen.queryByText('test-csrf-token')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+  })
+
+  it('shows timetable import when the account has timetable management permission', async () => {
+    const session = sessionFixture()
+    restoreMock.mockResolvedValue({
+      ...session,
+      actor: {
+        ...session.actor,
+        roles: ['administrator'],
+        permissions: ['timetable.manage'],
+      },
+    })
+
+    render(<StaffPanel />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Timetable import' }),
+    ).toBeInTheDocument()
   })
 
   it('recovers from a failed session check', async () => {
@@ -121,6 +142,7 @@ describe('Staff panel', () => {
     expect(await screen.findByText('Local Controller')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
 
   it('signs in and clears the password while the request is pending', async () => {
     let resolveLogin!: (session: StaffSession) => void

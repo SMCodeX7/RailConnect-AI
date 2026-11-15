@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from hashlib import sha256
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -29,6 +29,8 @@ def import_timetable(
     session: Session,
     snapshot: TimetableImportSnapshot,
     execution_context: str,
+    *,
+    imported_by_user_id: UUID | None = None,
 ) -> TimetableImportResult:
     if not session.in_transaction():
         raise ValueError("Timetable import requires a caller-owned transaction.")
@@ -84,6 +86,7 @@ def import_timetable(
                 f"railconnect:timetable-import:{source.id}",
             ),
             source_id=source.id,
+            imported_by_user_id=imported_by_user_id,
             importer_version=IMPORTER_VERSION,
             execution_context=context,
             services_in_dataset=len(snapshot.dataset.services),
