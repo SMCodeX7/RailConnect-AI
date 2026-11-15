@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, time
 from typing import Literal
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
@@ -25,6 +26,9 @@ LOCAL_TIMEZONE = ZoneInfo("Asia/Colombo")
 def search_journeys(
     session: Session,
     query: JourneySearchQuery,
+    *,
+    exclude_run_id: UUID | None = None,
+    earliest_departure: datetime | None = None,
 ) -> JourneyListResponse:
     departure_station = get_active_station(session, query.departure_station_id)
     arrival_station = get_active_station(session, query.arrival_station_id)
@@ -76,6 +80,13 @@ def search_journeys(
         departure_until,
     )
 
+    if exclude_run_id is not None:
+        candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.run.id != exclude_run_id and candidate.run.status == "scheduled"
+        ]
+
     disruptions = JourneyDisruptions(session, {candidate.run.id for candidate in candidates})
     sources = get_source_records(
         session,
@@ -100,6 +111,14 @@ def search_journeys(
         )
 
         if disruption is not None and (disruption.cancelled or disruption.restricted):
+            continue
+
+        effective_departure = (
+            disruption.estimated_departure_at
+            if disruption is not None and disruption.estimated_departure_at is not None
+            else departure
+        )
+        if earliest_departure is not None and effective_departure < earliest_departure:
             continue
 
         deadline_arrival = (

@@ -1957,3 +1957,79 @@ def test_journey_reads_apply_only_approved_effects(
         assert disruption["cancelled"] is (impact_kind == "cancellation")
         assert disruption["restricted"] is (impact_kind == "restriction")
         assert search.json()["total"] == 0
+
+    alternatives = context.client.get(f"{detail_url}/alternatives", params=detail_params)
+    assert alternatives.status_code == 200, alternatives.text
+    assert alternatives.json() == {
+        "original_run_id": str(context.run_id),
+        "items": [],
+        "total": 0,
+        "explanation": "No prepared direct alternative meets these criteria.",
+    }
+
+
+def test_journey_alternatives_offers_later_direct_run_when_it_meets_deadline(
+    review_context: ReviewContext,
+) -> None:
+    context = review_context
+    departure, arrival = context.database.scalars(
+        select(RunStop).where(RunStop.run_id == context.run_id).order_by(RunStop.stop_sequence)
+    ).all()
+
+    service = TrainService(
+        code=f"DEMO_ALT_{uuid4().hex[:24].upper()}",
+        name="Synthetic Direct Alternative",
+        source_ref="review-api-test",
+        operating_days=127,
+        valid_from=NOW.date(),
+        valid_until=NOW.date() + timedelta(days=7),
+        is_active=True,
+    )
+    context.database.add(service)
+    context.database.flush()
+
+    run = ServiceRun(
+        service_id=service.id,
+        service_date=NOW.date(),
+        source_ref=service.source_ref,
+        status="scheduled",
+        version=1,
+    )
+    context.database.add(run)
+    context.database.flush()
+
+    context.database.add_all(
+        [
+            RunStop(
+                run_id=run.id,
+                station_id=departure.station_id,
+                stop_sequence=1,
+                scheduled_departure_at=NOW + timedelta(hours=1, minutes=20),
+                pickup_allowed=True,
+                dropoff_allowed=False,
+            ),
+            RunStop(
+                run_id=run.id,
+                station_id=arrival.station_id,
+                stop_sequence=2,
+                scheduled_arrival_at=NOW + timedelta(hours=2, minutes=20),
+                pickup_allowed=False,
+                dropoff_allowed=True,
+            ),
+        ]
+    )
+    context.database.flush()
+
+    url = f"/api/v1/journeys/{context.run_id}/alternatives"
+    params = {"departure_stop_sequence": 1, "arrival_stop_sequence": 2}
+
+    available = context.client.get(url, params={**params, "arrive_before": "13:50"})
+    assert available.status_code == 200, available.text
+    assert available.headers["Cache-Control"] == "no-store"
+    assert available.json()["total"] == 1
+    assert [item["run_id"] for item in available.json()["items"]] == [str(run.id)]
+
+    late = context.client.get(url, params={**params, "arrive_before": "13:49"})
+    assert late.status_code == 200, late.text
+    assert late.json()["total"] == 0
+    assert late.json()["items"] == []

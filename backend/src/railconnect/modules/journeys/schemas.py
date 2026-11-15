@@ -137,3 +137,22 @@ class JourneyDetailResponse(BaseModel):
     source: TimetableSourceResponse | None = None
     stops: list[JourneyStopResponse] = Field(min_length=2)
     selected_segment: JourneySegmentResponse | None
+
+
+class JourneyAlternativesQuery(JourneyDetailQuery):
+    arrive_before: time | None = None
+    arrival_date: date | None = None
+
+    @model_validator(mode="after")
+    def require_segment(self) -> Self:
+        if self.departure_stop_sequence is None or self.arrival_stop_sequence is None:
+            raise ValueError("Supply both stop sequences for alternatives.")
+
+        return self
+
+
+class JourneyAlternativesResponse(BaseModel):
+    original_run_id: UUID
+    items: list[JourneyResponse]
+    total: int
+    explanation: str
