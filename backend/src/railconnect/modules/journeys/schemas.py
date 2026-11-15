@@ -37,6 +37,20 @@ class JourneySearchQuery(BaseModel):
         return self
 
 
+class JourneyEffectReference(BaseModel):
+    incident_id: UUID
+    revision_id: UUID
+    impact_kind: Literal["cancellation", "restriction", "delay"]
+
+
+class JourneyDisruptionResponse(BaseModel):
+    cancelled: bool
+    restricted: bool
+    estimated_departure_at: AwareDatetime | None
+    estimated_arrival_at: AwareDatetime | None
+    effects: list[JourneyEffectReference]
+
+
 class JourneyResponse(BaseModel):
     run_id: UUID
     service_date: date
@@ -54,6 +68,7 @@ class JourneyResponse(BaseModel):
     departure_at: AwareDatetime
     arrival_at: AwareDatetime
     duration_minutes: int = Field(gt=0)
+    disruption: JourneyDisruptionResponse | None = None
 
 
 class JourneyListResponse(BaseModel):
@@ -105,6 +120,7 @@ class JourneySegmentResponse(BaseModel):
     scheduled_departure_at: AwareDatetime
     scheduled_arrival_at: AwareDatetime
     duration_minutes: int = Field(gt=0)
+    disruption: JourneyDisruptionResponse | None = None
 
 
 class JourneyDetailResponse(BaseModel):

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from railconnect.app import create_app
 from railconnect.core.config import Settings
+from railconnect.db.dependencies import get_db_session
 from railconnect.modules.identity.dependencies import (
     get_identity_clock,
     get_identity_session,
@@ -161,6 +162,7 @@ def review_context(
 
     app.dependency_overrides[get_identity_session] = override_session
     app.dependency_overrides[get_report_session] = override_session
+    app.dependency_overrides[get_db_session] = override_session
     app.dependency_overrides[get_identity_clock] = lambda: lambda: NOW
 
     try:
@@ -1875,3 +1877,83 @@ def test_repeatable_synthetic_rejection_scenario(
         select(Incident).where(Incident.originating_report_id == context.report_id)
     )
     assert linked_incident is None
+
+
+@pytest.mark.parametrize("impact_kind", ["delay", "restriction", "cancellation"])
+def test_journey_reads_apply_only_approved_effects(
+    review_context: ReviewContext,
+    impact_kind: str,
+) -> None:
+    context = review_context
+    stops = context.database.scalars(
+        select(RunStop).where(RunStop.run_id == context.run_id).order_by(RunStop.stop_sequence)
+    ).all()
+    departure, arrival = stops
+    search_url = "/api/v1/journeys"
+    detail_url = f"{search_url}/{context.run_id}"
+    search_params = {
+        "departure_station_id": str(departure.station_id),
+        "arrival_station_id": str(arrival.station_id),
+        "travel_date": NOW.date().isoformat(),
+    }
+    detail_params = {"departure_stop_sequence": 1, "arrival_stop_sequence": 2}
+
+    baseline = context.client.get(search_url, params=search_params)
+    assert baseline.status_code == 200, baseline.text
+    original = baseline.json()["items"][0]
+    assert original["disruption"] is None
+
+    payload = verify_payload(context)
+    approved = payload["approved"]
+    assert isinstance(approved, dict)
+    approved["impact_kind"] = impact_kind
+    if impact_kind != "delay":
+        approved.pop("estimated_delay_minutes")
+    if impact_kind == "cancellation":
+        approved["scope_kind"] = "run"
+        approved.pop("departure_stop_sequence")
+        approved.pop("arrival_stop_sequence")
+
+    verified = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/verify",
+        json=payload,
+        headers=sign_in(context),
+    )
+    assert verified.status_code == 200, verified.text
+    context.client.cookies.clear()
+
+    detail = context.client.get(detail_url, params=detail_params)
+    assert detail.status_code == 200, detail.text
+    segment = detail.json()["selected_segment"]
+    assert segment["scheduled_departure_at"] == original["departure_at"]
+    assert segment["scheduled_arrival_at"] == original["arrival_at"]
+
+    disruption = segment["disruption"]
+    assert disruption["effects"] == [
+        {
+            "incident_id": verified.json()["incident_id"],
+            "revision_id": verified.json()["revision_id"],
+            "impact_kind": impact_kind,
+        }
+    ]
+
+    search = context.client.get(search_url, params=search_params)
+    assert search.status_code == 200, search.text
+    if impact_kind == "delay":
+        journey = search.json()["items"][0]
+        assert journey["arrival_at"] == original["arrival_at"]
+        assert journey["disruption"] == disruption
+        assert datetime.fromisoformat(disruption["estimated_arrival_at"]) == (
+            NOW + timedelta(hours=2, minutes=15)
+        )
+
+        deadline_search = context.client.get(
+            search_url,
+            params={**search_params, "arrive_before": "13:30"},
+        )
+        assert deadline_search.status_code == 200, deadline_search.text
+        assert deadline_search.json()["total"] == 0
+    else:
+        assert disruption["cancelled"] is (impact_kind == "cancellation")
+        assert disruption["restricted"] is (impact_kind == "restriction")
+        assert search.json()["total"] == 0
