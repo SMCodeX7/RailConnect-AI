@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getStations } from '../../stations/api'
 import type { Station } from '../../stations/types'
-import { getJourneyDetail, getJourneys } from '../api'
+import { getJourneyAlternatives, getJourneyDetail, getJourneys } from '../api'
 import type {
   Journey,
   JourneyDetailResponse,
@@ -20,6 +20,7 @@ vi.mock('../../stations/api', () => ({
 vi.mock('../api', () => ({
   getJourneys: vi.fn(),
   getJourneyDetail: vi.fn(),
+  getJourneyAlternatives: vi.fn(),
 }))
 
 const departure: Station = {
@@ -421,5 +422,120 @@ describe('Arrival deadline controls', () => {
       name: journey.service_name,
     })).not.toBeInTheDocument()
     expect(mockedJourneys).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Journey disruptions', () => {
+  it('shows the estimate beside the schedule and refreshes journey details', async () => {
+    const delayed: Journey = {
+      ...journey,
+      disruption: {
+        cancelled: false,
+        restricted: false,
+        estimated_departure_at: null,
+        estimated_arrival_at: '2026-10-12T15:20:00+05:30',
+        effects: [
+          { incident_id: 'incident-1', revision_id: 'revision-1', impact_kind: 'delay' },
+        ],
+      },
+    }
+    const detail = makeDetail(delayed)
+    if (!detail.selected_segment) throw new Error('Expected a selected segment')
+    detail.selected_segment.disruption = delayed.disruption
+    mockedDetails
+      .mockResolvedValueOnce(detail)
+      .mockResolvedValueOnce(makeDetail(journey))
+
+    const user = userEvent.setup()
+    render(
+      <JourneyResults
+        result={{ ...results, items: [delayed] }}
+        onPageChange={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Scheduled arrival')).toBeInTheDocument()
+    expect(screen.getByText('Estimated arrival')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', {
+      name: `View journey details for ${journey.service_name}`,
+    }))
+
+    const panel = screen.getByRole('region', { name: 'Journey details' })
+    expect(await within(panel).findByText('Estimated arrival')).toBeInTheDocument()
+
+    await user.click(within(panel).getByRole('button', { name: 'Refresh journey details' }))
+    await within(panel).findByRole('heading', { name: journey.service_name })
+
+    expect(mockedDetails).toHaveBeenCalledTimes(2)
+    expect(within(panel).queryByText('Estimated arrival')).not.toBeInTheDocument()
+  })
+
+  it('passes the deadline and displays empty and available alternatives', async () => {
+    const alternatives = vi.mocked(getJourneyAlternatives)
+    alternatives
+      .mockResolvedValueOnce({
+        original_run_id: journey.run_id,
+        items: [],
+        total: 0,
+        explanation: 'No prepared direct alternative meets these criteria.',
+      })
+      .mockResolvedValueOnce({
+        original_run_id: journey.run_id,
+        items: [{ ...journey, run_id: 'alternate-run', service_name: 'Later direct service' }],
+        total: 1,
+        explanation: 'One direct alternative meets these criteria.',
+      })
+
+    const user = userEvent.setup()
+    render(
+      <JourneyResults
+        result={results}
+        onPageChange={vi.fn()}
+        arriveBefore="16:00"
+        arrivalDate="2026-10-12"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', {
+      name: `View journey details for ${journey.service_name}`,
+    }))
+
+    const panel = await screen.findByRole('region', { name: 'Direct alternatives' })
+    const button = within(panel).getByRole('button', { name: 'Check direct alternatives' })
+    expect(alternatives).not.toHaveBeenCalled()
+
+    await user.click(button)
+    expect(
+      await within(panel).findByText('No prepared direct alternative meets these criteria.'),
+    ).toBeInTheDocument()
+    expect(alternatives).toHaveBeenCalledWith(
+      {
+        runId: journey.run_id,
+        departureStopSequence: 1,
+        arrivalStopSequence: 2,
+        arriveBefore: '16:00',
+        arrivalDate: '2026-10-12',
+      },
+      expect.any(AbortSignal),
+    )
+
+    await user.click(button)
+    expect(await within(panel).findByText('Later direct service')).toBeInTheDocument()
+  })
+
+  it('refreshes journey results from the first page', async () => {
+    const user = userEvent.setup()
+    const onPageChange = vi.fn()
+    render(
+      <JourneyResults
+        result={{ ...results, offset: 50, total: 51 }}
+        onPageChange={onPageChange}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Refresh journey results' }))
+
+    expect(onPageChange).toHaveBeenCalledWith(0)
   })
 })

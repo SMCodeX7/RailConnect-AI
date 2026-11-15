@@ -1,5 +1,7 @@
 import { getJson } from '../../shared/api/http'
 import type {
+  JourneyAlternativesInput,
+  JourneyAlternativesResponse,
   JourneyDetailInput,
   JourneyDetailResponse,
   JourneyListResponse,
@@ -43,6 +45,29 @@ export function getJourneyDetail(
 
   return getJson<JourneyDetailResponse>(
     `/api/v1/journeys/${encodeURIComponent(input.runId)}?${parameters.toString()}`,
+    signal,
+  )
+}
+
+export function getJourneyAlternatives(
+  input: JourneyAlternativesInput,
+  signal: AbortSignal,
+): Promise<JourneyAlternativesResponse> {
+  const parameters = new URLSearchParams({
+    departure_stop_sequence: String(input.departureStopSequence),
+    arrival_stop_sequence: String(input.arrivalStopSequence),
+  })
+
+  if (input.arriveBefore) {
+    parameters.set('arrive_before', input.arriveBefore)
+  }
+
+  if (input.arrivalDate) {
+    parameters.set('arrival_date', input.arrivalDate)
+  }
+
+  return getJson<JourneyAlternativesResponse>(
+    `/api/v1/journeys/${encodeURIComponent(input.runId)}/alternatives?${parameters.toString()}`,
     signal,
   )
 }

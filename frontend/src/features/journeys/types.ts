@@ -41,6 +41,7 @@ export interface Journey {
   departure_at: string
   arrival_at: string
   duration_minutes: number
+  disruption?: JourneyDisruption | null
 }
 
 export interface JourneyListResponse {
@@ -78,6 +79,7 @@ export interface JourneySegment {
   scheduled_departure_at: string
   scheduled_arrival_at: string
   duration_minutes: number
+  disruption?: JourneyDisruption | null
 }
 
 export interface JourneyDetailResponse {
@@ -94,4 +96,28 @@ export interface JourneyDetailResponse {
   source: TimetableSource | null
   stops: JourneyStop[]
   selected_segment: JourneySegment | null
+}
+
+export interface JourneyDisruption {
+  cancelled: boolean
+  restricted: boolean
+  estimated_departure_at: string | null
+  estimated_arrival_at: string | null
+  effects: {
+    incident_id: string
+    revision_id: string
+    impact_kind: 'cancellation' | 'restriction' | 'delay'
+  }[]
+}
+
+export interface JourneyAlternativesInput extends JourneyDetailInput {
+  arriveBefore?: string
+  arrivalDate?: string
+}
+
+export interface JourneyAlternativesResponse {
+  original_run_id: string
+  items: Journey[]
+  total: number
+  explanation: string
 }
