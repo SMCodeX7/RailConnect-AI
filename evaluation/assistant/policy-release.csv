@@ -1,0 +1,61 @@
+id,question,expected_chunk_id
+R01,Where in the app can I search for a train between two stops?,search-direct-journeys
+R02,Can I find journeys by choosing both stations and a date?,search-direct-journeys
+R03,How do I filter a journey search by latest arrival time?,search-direct-journeys
+R04,What date should I enter when I search for a train that arrives after midnight?,search-direct-journeys
+R05,In journey search what does Arrive by do?,search-direct-journeys
+R06,Which date counts as the boarding date in the journey search?,search-direct-journeys
+R07,How can I look up a direct train for a particular day?,search-direct-journeys
+R08,What do I enter if I want to arrive before breakfast the next morning?,search-direct-journeys
+R09,How do I submit a report about a disruption I observed?,report-disruption
+R10,Does a disruption report need a title and description?,report-disruption
+R11,What clock should I use for the observation time when I submit a report?,report-disruption
+R12,Who reviews a disruption report after I send it?,report-disruption
+R13,What does the pending status on my passenger report mean?,report-disruption
+R14,Will a disruption I report affect the results while it is pending?,report-disruption
+R15,Where can I flag a service interruption that I saw?,report-disruption
+R16,Will I get a receipt when I submit an observation?,report-disruption
+R17,Can I see the scheduled arrival after a confirmed delay?,interpret-delay-estimates
+R18,Where do the estimated departure and arrival appear?,interpret-delay-estimates
+R19,How can I refresh an existing journey result after a delay?,interpret-delay-estimates
+R20,Why does the arrival estimate differ from the scheduled time?,interpret-delay-estimates
+R21,Can I refresh the open journey details for an updated estimate?,interpret-delay-estimates
+R22,What happens to the displayed schedule when a delay is verified?,interpret-delay-estimates
+R23,The journey card has an extra arrival time after a delay. What is it?,interpret-delay-estimates
+R24,Do the results automatically change while I keep the screen open?,interpret-delay-estimates
+R25,How can I find direct alternatives without changing the station pair?,check-direct-alternatives
+R26,Where is the direct alternatives control for the selected journey?,check-direct-alternatives
+R27,Will direct alternatives include the journey I already opened?,check-direct-alternatives
+R28,Do direct alternatives respect the Arrive by filter?,check-direct-alternatives
+R29,Does a direct alternative have to depart on the same boarding date?,check-direct-alternatives
+R30,What happens if there is no direct alternative that meets my deadline?,check-direct-alternatives
+R31,After opening a journey how do I check for another direct train?,check-direct-alternatives
+R32,Can the app look for another service between these same two stops?,check-direct-alternatives
+R33,Is the demonstration timetable a fictional dataset?,demonstration-coverage
+R34,Does the demo cover all stations in Sri Lanka?,demonstration-coverage
+R35,Is it possible that a demo timetable date has no prepared runs?,demonstration-coverage
+R36,Why is my date missing from these fictional schedules?,demonstration-coverage
+R37,Are the times in the demonstration data real railway times?,demonstration-coverage
+R38,What should I infer from an empty result in the demo schedule?,demonstration-coverage
+R39,Are these sample times suitable for planning a real trip?,demonstration-coverage
+R40,Why is my station missing from the journey planner?,demonstration-coverage
+R41,How much does a first-class reservation cost?,
+R42,Can I purchase a monthly rail pass through this app?,
+R43,How many boarding platforms are at Colombo Fort?,
+R44,Does this timetable show seat availability for tomorrow?,
+R45,Can you show the current coordinates of the train?,
+R46,Do you reimburse passengers for overnight accommodation?,
+R47,Can I take an electric scooter into a carriage?,
+R48,Is food sold on board Demo Northern Return?,
+R49,Does the train have a wheelchair ramp at every stop?,
+R50,How do I search the live timetable for trains in London?,
+R51,Can you find an alternative bus for the same boarding date?,
+R52,How do I submit a report about an internet interruption?,
+R53,Who was the staff member on duty when the delay was verified?,
+R54,Can I read the private evidence behind the incident?,
+R55,What is the current price of this journey after the delay?,
+R56,Can you tell me the weather for the timetable date?,
+R57,What caused the signal failure on the Northern Line today?,
+R58,Will I get a refund if the estimated arrival is late?,
+R59,When does the station lost-property office close?,
+R60,Can I transfer a booking to another passenger?,

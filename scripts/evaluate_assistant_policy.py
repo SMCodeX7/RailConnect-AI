@@ -95,17 +95,24 @@ def evaluate(cases: list[Case]) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate RailConnect passenger guide answers.")
-    parser.add_argument("--split", choices=("tuning", "final"), required=True)
+    parser.add_argument("--split", choices=("tuning", "final", "release"), required=True)
     args = parser.parse_args()
 
     try:
         cases = read_cases(CASE_DIRECTORY / f"policy-{args.split}.csv")
-        if args.split == "final":
+        if args.split in {"final", "release"}:
             tuning = read_cases(CASE_DIRECTORY / "policy-tuning.csv")
             if len(cases) < MINIMUM_FINAL_CASES:
-                raise ValueError(f"The final set needs at least {MINIMUM_FINAL_CASES} cases.")
+                raise ValueError(
+                    f"The {args.split} set needs at least {MINIMUM_FINAL_CASES} cases."
+                )
             if question_set(cases) & question_set(tuning):
-                raise ValueError("Tuning and final questions must be separate.")
+                raise ValueError("Tuning and evaluation questions must be separate.")
+
+        if args.split == "release":
+            regression = read_cases(CASE_DIRECTORY / "policy-final.csv")
+            if question_set(cases) & question_set(regression):
+                raise ValueError("Release and regression questions must be separate.")
 
         print(f"Passenger guide evaluation: {args.split}")
         return evaluate(cases)
