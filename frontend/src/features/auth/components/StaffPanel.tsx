@@ -4,6 +4,7 @@ import { StaffReportQueue } from '../../incidents/components/StaffReportQueue'
 import { useStaffSession } from '../hooks/useStaffSession'
 import type { StaffPermission } from '../types'
 import { StaffLoginForm } from './StaffLoginForm'
+import { TimetableImportPanel } from '../../timetable/components/TimetableImportPanel'
 
 const permissionLabels: Record<StaffPermission, string> = {
   'reports.read': 'View passenger reports',
@@ -132,6 +133,14 @@ export function StaffPanel() {
               {busy ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
+
+          {!busy && hasPermission('timetable.manage') && (
+            <TimetableImportPanel
+              key={`timetable:${session.actor.user_id}`}
+              csrfToken={session.csrf_token}
+              onSessionInvalid={refresh}
+            />
+          )}
 
           {!busy && hasPermission('reports.read') && (
             <StaffReportQueue
