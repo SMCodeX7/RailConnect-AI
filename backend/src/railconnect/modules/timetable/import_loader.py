@@ -25,8 +25,21 @@ def load_timetable_snapshot(
     dataset_path: Path,
     metadata_path: Path,
 ) -> TimetableImportSnapshot:
-    dataset_bytes = _read_bounded(dataset_path, MAX_DATASET_BYTES)
-    metadata_bytes = _read_bounded(metadata_path, MAX_METADATA_BYTES)
+    return parse_timetable_snapshot(
+        _read_bounded(dataset_path, MAX_DATASET_BYTES),
+        _read_bounded(metadata_path, MAX_METADATA_BYTES),
+    )
+
+
+def parse_timetable_snapshot(
+    dataset_bytes: bytes,
+    metadata_bytes: bytes,
+) -> TimetableImportSnapshot:
+    if len(dataset_bytes) > MAX_DATASET_BYTES:
+        raise ValueError("Timetable dataset exceeds the supported size.")
+
+    if len(metadata_bytes) > MAX_METADATA_BYTES:
+        raise ValueError("Source metadata exceeds the supported size.")
 
     dataset = DemoTimetableDataset.model_validate_json(dataset_bytes.decode("utf-8-sig"))
     metadata = TimetableSourceMetadata.model_validate_json(metadata_bytes.decode("utf-8-sig"))

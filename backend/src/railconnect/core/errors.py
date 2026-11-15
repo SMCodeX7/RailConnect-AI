@@ -19,6 +19,7 @@ HTTP_ERRORS = {
     429: ("RATE_LIMITED", "Too many requests. Please try again later."),
     500: ("INTERNAL_ERROR", "An unexpected error occurred."),
     503: ("SERVICE_UNAVAILABLE", "The service is temporarily unavailable."),
+    413: ("PAYLOAD_TOO_LARGE", "The request exceeds the supported size."),
 }
 
 
