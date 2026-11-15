@@ -2033,3 +2033,102 @@ def test_journey_alternatives_offers_later_direct_run_when_it_meets_deadline(
     assert late.status_code == 200, late.text
     assert late.json()["total"] == 0
     assert late.json()["items"] == []
+
+
+def _create_assistant_turn(
+    context: ReviewContext,
+    question: str,
+    lookup: dict[str, str],
+) -> dict[str, object]:
+    base_url = "/api/v1/assistant/conversations"
+    headers = {"Origin": ORIGIN}
+
+    created = context.client.post(base_url, headers=headers)
+    assert created.status_code == 201, created.text
+    conversation_id = created.json()["conversation_id"]
+
+    turn = context.client.post(
+        f"{base_url}/{conversation_id}/turns",
+        headers=headers,
+        json={"question": question, "lookup": lookup},
+    )
+    assert turn.status_code == 201, turn.text
+
+    answer = turn.json()["answer"]
+    assert isinstance(answer, dict)
+    return answer
+
+
+def test_assistant_cites_prepared_direct_journey(review_context: ReviewContext) -> None:
+    context = review_context
+    stops = context.database.scalars(
+        select(RunStop).where(RunStop.run_id == context.run_id).order_by(RunStop.stop_sequence)
+    ).all()
+    departure = context.database.get(Station, stops[0].station_id)
+    arrival = context.database.get(Station, stops[1].station_id)
+    assert departure is not None
+    assert arrival is not None
+
+    answer = _create_assistant_turn(
+        context,
+        "Find a direct journey.",
+        {
+            "kind": "journey",
+            "departure": departure.code.lower(),
+            "arrival": arrival.name,
+            "travel_date": NOW.date().isoformat(),
+        },
+    )
+
+    assert answer["status"] == "answered"
+    message = answer["answer"]
+    assert isinstance(message, str)
+    assert "demonstration timetable" in message
+    assert "scheduled arrival 2026-10-18 13:30" in message
+    assert answer["citations"] == [
+        {
+            "kind": "journey",
+            "title": "Synthetic Review Service",
+            "href": (
+                f"/api/v1/journeys/{context.run_id}"
+                "?departure_stop_sequence=1&arrival_stop_sequence=2"
+            ),
+            "record_version": 1,
+            "revision_id": None,
+        }
+    ]
+
+
+def test_assistant_cites_public_verified_incident(review_context: ReviewContext) -> None:
+    context = review_context
+    verified = context.client.post(
+        f"/api/v1/staff/reports/{context.report_id}/verify",
+        headers=sign_in(context),
+        json=verify_payload(context),
+    )
+    assert verified.status_code == 200, verified.text
+    incident_id = verified.json()["incident_id"]
+    revision_id = verified.json()["revision_id"]
+    context.client.cookies.clear()
+
+    answer = _create_assistant_turn(
+        context,
+        "Look up this incident.",
+        {"kind": "incident", "incident_id": incident_id},
+    )
+
+    assert answer["status"] == "answered"
+    message = answer["answer"]
+    assert isinstance(message, str)
+    assert "Synthetic demonstration delay." in message
+    assert "Controlled test scenario." not in message
+    assert "Reviewed synthetic evidence." not in message
+    assert answer["citations"] == [
+        {
+            "kind": "incident",
+            "title": "Verified incident record",
+            "href": f"/api/v1/incidents/{incident_id}",
+            "record_version": 1,
+            "revision_id": revision_id,
+        }
+    ]

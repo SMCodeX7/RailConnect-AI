@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from railconnect.db.dependencies import DatabaseSession
 from railconnect.modules.assistant.answer_schemas import AssistantAnswer, AssistantQuestion
-from railconnect.modules.assistant.answer_service import answer_policy_question
+from railconnect.modules.assistant.lookup_service import answer_assistant_question
 from railconnect.modules.assistant.models import AssistantConversation, AssistantTurn
 from railconnect.modules.identity.dependencies import (
     NO_STORE_HEADERS,
@@ -148,7 +148,7 @@ def create_turn(
         if turn_number > MAX_TURNS:
             raise HTTPException(status_code=409, headers=NO_STORE_HEADERS)
 
-        answer = answer_policy_question(data)
+        answer = answer_assistant_question(session, data)
         session.add(
             AssistantTurn(
                 conversation_id=conversation_id,

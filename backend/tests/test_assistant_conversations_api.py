@@ -115,3 +115,44 @@ def test_untrusted_origin_cannot_create_or_append(assistant_client: TestClient) 
     history = assistant_client.get(url)
     assert history.status_code == 200
     assert history.json()["turns"] == []
+
+
+@pytest.mark.parametrize(
+    ("lookup", "expected_status", "expected_text"),
+    [
+        (
+            {"kind": "journey", "departure": "Jaffna"},
+            "clarify",
+            "Enter the departure station, arrival station and boarding date.",
+        ),
+        (
+            {"kind": "incident"},
+            "clarify",
+            "Enter the public incident ID you want to look up.",
+        ),
+        (
+            {"kind": "incident", "incident_id": "00000000-0000-0000-0000-000000000001"},
+            "unavailable",
+            "No public verified incident matches that ID.",
+        ),
+    ],
+)
+def test_lookup_turn_requests_details_or_returns_unavailable(
+    assistant_client: TestClient,
+    lookup: dict[str, str],
+    expected_status: str,
+    expected_text: str,
+) -> None:
+    url = _create_conversation(assistant_client)
+    response = assistant_client.post(
+        f"{url}/turns",
+        headers=ORIGIN,
+        json={"question": "Help me check this record.", "lookup": lookup},
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["answer"] == {
+        "status": expected_status,
+        "answer": expected_text,
+        "citations": [],
+    }
