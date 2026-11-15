@@ -13,6 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from railconnect.db.base import Base
+from railconnect.modules.identity.models.user import User
 
 
 class TimetableImport(Base):
@@ -59,6 +60,11 @@ class TimetableImport(Base):
         ForeignKey("source_records.id", ondelete="RESTRICT"),
         nullable=False,
         unique=True,
+    )
+    imported_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey(User.__table__.c.id, ondelete="RESTRICT"),
+        nullable=True,
     )
     importer_version: Mapped[str] = mapped_column(
         String(50),
