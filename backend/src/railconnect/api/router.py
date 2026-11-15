@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from railconnect.modules.assistant.routes import router as assistant_router
 from railconnect.modules.identity.routes import router as auth_router
 from railconnect.modules.incidents.audit_routes import router as audit_router
 from railconnect.modules.incidents.lifecycle_routes import router as lifecycle_router
@@ -20,3 +21,4 @@ router.include_router(lifecycle_router)
 router.include_router(audit_router)
 router.include_router(public_incidents_router)
 router.include_router(staff_timetable_router)
+router.include_router(assistant_router)

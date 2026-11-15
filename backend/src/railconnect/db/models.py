@@ -1,4 +1,5 @@
 from railconnect.db.base import Base
+from railconnect.modules.assistant.models import AssistantConversation, AssistantTurn
 from railconnect.modules.identity.models.auth_session import AuthSession
 from railconnect.modules.identity.models.login_rate_limit import LoginRateLimit
 from railconnect.modules.identity.models.role import Role
@@ -18,6 +19,8 @@ from railconnect.modules.timetable.models.timetable_import import TimetableImpor
 from railconnect.modules.timetable.models.train_service import TrainService
 
 __all__ = [
+    "AssistantConversation",
+    "AssistantTurn",
     "AuthSession",
     "Base",
     "Incident",
