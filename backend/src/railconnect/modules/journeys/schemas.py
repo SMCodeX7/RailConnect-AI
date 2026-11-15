@@ -37,6 +37,20 @@ class JourneySearchQuery(BaseModel):
         return self
 
 
+class JourneyEffectReference(BaseModel):
+    incident_id: UUID
+    revision_id: UUID
+    impact_kind: Literal["cancellation", "restriction", "delay"]
+
+
+class JourneyDisruptionResponse(BaseModel):
+    cancelled: bool
+    restricted: bool
+    estimated_departure_at: AwareDatetime | None
+    estimated_arrival_at: AwareDatetime | None
+    effects: list[JourneyEffectReference]
+
+
 class JourneyResponse(BaseModel):
     run_id: UUID
     service_date: date
@@ -54,6 +68,7 @@ class JourneyResponse(BaseModel):
     departure_at: AwareDatetime
     arrival_at: AwareDatetime
     duration_minutes: int = Field(gt=0)
+    disruption: JourneyDisruptionResponse | None = None
 
 
 class JourneyListResponse(BaseModel):
@@ -105,6 +120,7 @@ class JourneySegmentResponse(BaseModel):
     scheduled_departure_at: AwareDatetime
     scheduled_arrival_at: AwareDatetime
     duration_minutes: int = Field(gt=0)
+    disruption: JourneyDisruptionResponse | None = None
 
 
 class JourneyDetailResponse(BaseModel):
@@ -121,3 +137,22 @@ class JourneyDetailResponse(BaseModel):
     source: TimetableSourceResponse | None = None
     stops: list[JourneyStopResponse] = Field(min_length=2)
     selected_segment: JourneySegmentResponse | None
+
+
+class JourneyAlternativesQuery(JourneyDetailQuery):
+    arrive_before: time | None = None
+    arrival_date: date | None = None
+
+    @model_validator(mode="after")
+    def require_segment(self) -> Self:
+        if self.departure_stop_sequence is None or self.arrival_stop_sequence is None:
+            raise ValueError("Supply both stop sequences for alternatives.")
+
+        return self
+
+
+class JourneyAlternativesResponse(BaseModel):
+    original_run_id: UUID
+    items: list[JourneyResponse]
+    total: int
+    explanation: str

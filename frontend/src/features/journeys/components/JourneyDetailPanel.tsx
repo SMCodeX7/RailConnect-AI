@@ -3,17 +3,23 @@ import { useEffect, useRef } from 'react'
 import { TimetableSourceCard } from './TimetableSourceCard'
 import { formatDuration, formatJourneyTimestamp } from '../formatting'
 import type { JourneyDetailState } from '../hooks/useJourneyDetail'
+import { JourneyAlternatives } from './JourneyAlternatives'
+import { JourneyDisruptionNotice } from './JourneyDisruptionNotice'
 
 interface JourneyDetailPanelProps {
   state: JourneyDetailState
   onRetry: () => void
   onClose: () => void
+  arriveBefore?: string
+  arrivalDate?: string
 }
 
 export function JourneyDetailPanel({
   state,
   onRetry,
   onClose,
+  arriveBefore = '',
+  arrivalDate = '',
 }: JourneyDetailPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
 
@@ -34,6 +40,11 @@ export function JourneyDetailPanel({
         <h3 id="journey-detail-heading" ref={headingRef} tabIndex={-1}>
           Journey details
         </h3>
+        {state.status === 'ready' && (
+          <button type="button" onClick={onRetry}>
+            Refresh journey details
+          </button>
+        )}
         <button type="button" onClick={onClose}>
           Close details
         </button>
@@ -79,6 +90,21 @@ export function JourneyDetailPanel({
               {segment.arrival_station.name}. Scheduled duration:{' '}
               {formatDuration(segment.duration_minutes)}.
             </p>
+          )}
+
+          {segment && (
+            <>
+              <JourneyDisruptionNotice disruption={segment.disruption} />
+              <JourneyAlternatives
+                input={{
+                  runId: detail.run_id,
+                  departureStopSequence: segment.departure_stop_sequence,
+                  arrivalStopSequence: segment.arrival_stop_sequence,
+                  arriveBefore,
+                  arrivalDate,
+                }}
+              />
+            </>
           )}
 
           <p className="muted">

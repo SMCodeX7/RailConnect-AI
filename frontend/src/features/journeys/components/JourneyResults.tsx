@@ -4,15 +4,20 @@ import { formatDuration, formatJourneyTimestamp } from '../formatting'
 import { useJourneyDetail } from '../hooks/useJourneyDetail'
 import type { JourneyListResponse } from '../types'
 import { JourneyDetailPanel } from './JourneyDetailPanel'
+import { JourneyDisruptionNotice } from './JourneyDisruptionNotice'
 
 interface JourneyResultsProps {
   result: JourneyListResponse
   onPageChange: (offset: number) => void
+  arriveBefore?: string
+  arrivalDate?: string
 }
 
 export function JourneyResults({
   result,
   onPageChange,
+  arriveBefore = '',
+  arrivalDate = '',
 }: JourneyResultsProps) {
   const details = useJourneyDetail()
   const triggerRef = useRef<HTMLButtonElement | null>(null)
@@ -35,6 +40,10 @@ export function JourneyResults({
       aria-labelledby="journey-results-heading"
     >
       <h3 id="journey-results-heading">Journey results</h3>
+
+      <button type="button" onClick={() => changePage(0)}>
+        Refresh journey results
+      </button>
 
       {result.total === 0 ? (
         <p role="status">
@@ -83,7 +92,7 @@ export function JourneyResults({
 
                   <dl className="journey-details">
                     <div>
-                      <dt>Departure</dt>
+                      <dt>Scheduled departure</dt>
                       <dd>
                         <time dateTime={journey.departure_at}>
                           {formatJourneyTimestamp(journey.departure_at)}
@@ -91,7 +100,7 @@ export function JourneyResults({
                       </dd>
                     </div>
                     <div>
-                      <dt>Arrival</dt>
+                      <dt>Scheduled arrival</dt>
                       <dd>
                         <time dateTime={journey.arrival_at}>
                           {formatJourneyTimestamp(journey.arrival_at)}
@@ -99,10 +108,12 @@ export function JourneyResults({
                       </dd>
                     </div>
                     <div>
-                      <dt>Duration</dt>
+                      <dt>Scheduled duration</dt>
                       <dd>{formatDuration(journey.duration_minutes)}</dd>
                     </div>
                   </dl>
+
+                  <JourneyDisruptionNotice disruption={journey.disruption} />
 
                   <button
                     type="button"
@@ -126,6 +137,8 @@ export function JourneyResults({
           state={details}
           onRetry={details.retry}
           onClose={closeDetails}
+          arriveBefore={arriveBefore}
+          arrivalDate={arrivalDate}
         />
       )}
 

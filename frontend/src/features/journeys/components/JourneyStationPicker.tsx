@@ -182,6 +182,8 @@ export function JourneyStationPicker() {
           <JourneyResults
             result={journeys.result}
             onPageChange={runSearch}
+            arriveBefore={arriveBefore}
+            arrivalDate={arrivalDate}
           />
         )}
       </div>

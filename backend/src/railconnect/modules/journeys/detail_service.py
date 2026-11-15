@@ -8,6 +8,7 @@ from railconnect.modules.journeys.detail_repository import (
     get_journey_run,
     list_journey_stops,
 )
+from railconnect.modules.journeys.disruption_service import JourneyDisruptions
 from railconnect.modules.journeys.errors import (
     JourneyDataUnavailableError,
     JourneyNotFoundError,
@@ -89,6 +90,13 @@ def get_journey_detail(
             scheduled_departure_at=departure_at,
             scheduled_arrival_at=arrival_at,
             duration_minutes=int((arrival_at - departure_at).total_seconds() // 60),
+            disruption=JourneyDisruptions(session, {run_id}).for_segment(
+                run_id,
+                departure.stop_sequence,
+                arrival.stop_sequence,
+                departure_at,
+                arrival_at,
+            ),
         )
 
     status: Literal["scheduled", "cancelled", "restricted"]

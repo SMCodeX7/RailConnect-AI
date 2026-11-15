@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, time
 from typing import Literal
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from railconnect.modules.journeys.disruption_service import JourneyDisruptions
 from railconnect.modules.journeys.errors import InvalidStationSelectionError
 from railconnect.modules.journeys.repository import (
     get_active_station,
@@ -24,6 +26,9 @@ LOCAL_TIMEZONE = ZoneInfo("Asia/Colombo")
 def search_journeys(
     session: Session,
     query: JourneySearchQuery,
+    *,
+    exclude_run_id: UUID | None = None,
+    earliest_departure: datetime | None = None,
 ) -> JourneyListResponse:
     departure_station = get_active_station(session, query.departure_station_id)
     arrival_station = get_active_station(session, query.arrival_station_id)
@@ -75,6 +80,14 @@ def search_journeys(
         departure_until,
     )
 
+    if exclude_run_id is not None:
+        candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.run.id != exclude_run_id and candidate.run.status == "scheduled"
+        ]
+
+    disruptions = JourneyDisruptions(session, {candidate.run.id for candidate in candidates})
     sources = get_source_records(
         session,
         {candidate.run.source_ref for candidate in candidates},
@@ -87,7 +100,33 @@ def search_journeys(
         if departure is None or arrival is None:
             continue
 
-        if arrival_deadline is not None and arrival > arrival_deadline:
+        departure_local = departure.astimezone(LOCAL_TIMEZONE)
+        arrival_local = arrival.astimezone(LOCAL_TIMEZONE)
+        disruption = disruptions.for_segment(
+            candidate.run.id,
+            candidate.departure_stop.stop_sequence,
+            candidate.arrival_stop.stop_sequence,
+            departure_local,
+            arrival_local,
+        )
+
+        if disruption is not None and (disruption.cancelled or disruption.restricted):
+            continue
+
+        effective_departure = (
+            disruption.estimated_departure_at
+            if disruption is not None and disruption.estimated_departure_at is not None
+            else departure
+        )
+        if earliest_departure is not None and effective_departure < earliest_departure:
+            continue
+
+        deadline_arrival = (
+            disruption.estimated_arrival_at
+            if disruption is not None and disruption.estimated_arrival_at is not None
+            else arrival
+        )
+        if arrival_deadline is not None and deadline_arrival > arrival_deadline:
             continue
 
         status: Literal["scheduled", "restricted"]
@@ -119,9 +158,10 @@ def search_journeys(
                 ),
                 departure_station=departure_response,
                 arrival_station=arrival_response,
-                departure_at=departure.astimezone(LOCAL_TIMEZONE),
-                arrival_at=arrival.astimezone(LOCAL_TIMEZONE),
+                departure_at=departure_local,
+                arrival_at=arrival_local,
                 duration_minutes=duration_minutes,
+                disruption=disruption,
             )
         )
 
