@@ -1,0 +1,61 @@
+id,question,expected_chunk_id
+F01,How should I search RailConnect for a journey between two stations?,search-direct-journeys
+F02,Which details do I need to find a direct journey?,search-direct-journeys
+F03,Can I search for a journey that arrives before a deadline?,search-direct-journeys
+F04,When I search for an overnight journey which date should I enter?,search-direct-journeys
+F05,How do I find a journey by departure and arrival station?,search-direct-journeys
+F06,Where do I set an arrival deadline when I search the timetable?,search-direct-journeys
+F07,How can I look up trains between two stations for a chosen day?,search-direct-journeys
+F08,Is travel date the day I board or the day I arrive?,search-direct-journeys
+F09,Where do passengers submit reports about disruptions?,report-disruption
+F10,What observation details should I include in a disruption report?,report-disruption
+F11,Why does my submitted disruption report say pending?,report-disruption
+F12,Does a pending report immediately change journey results?,report-disruption
+F13,What time zone should I use for my disruption report?,report-disruption
+F14,How do I check that my disruption report was submitted?,report-disruption
+F15,What happens after I tell RailConnect about a service interruption?,report-disruption
+F16,Can passengers notify staff when they notice a disruption?,report-disruption
+F17,How can I tell the scheduled arrival from the estimated arrival?,interpret-delay-estimates
+F18,Where do I see a verified delay for my journey?,interpret-delay-estimates
+F19,How do I refresh journey details after a delay is verified?,interpret-delay-estimates
+F20,Are estimated departure times shown alongside the schedule?,interpret-delay-estimates
+F21,How do I refresh the results to see the latest delay estimate?,interpret-delay-estimates
+F22,Does a verified delay replace the scheduled arrival on screen?,interpret-delay-estimates
+F23,Why are there two different arrival times on the journey card?,interpret-delay-estimates
+F24,How can I update an open journey card after staff approve a delay?,interpret-delay-estimates
+F25,Where in journey details can I check alternatives?,check-direct-alternatives
+F26,How do I find an alternative direct service?,check-direct-alternatives
+F27,Does Check direct alternatives include the original run?,check-direct-alternatives
+F28,Do the direct alternatives use my selected arrival deadline?,check-direct-alternatives
+F29,Will the direct alternatives use the same stations and boarding date?,check-direct-alternatives
+F30,What does RailConnect show if it cannot find a direct alternative?,check-direct-alternatives
+F31,Can the app suggest another train for the same station pair?,check-direct-alternatives
+F32,How do I check for another direct service from the journey details page?,check-direct-alternatives
+F33,Are the demo schedules real railway information?,demonstration-coverage
+F34,Does demonstration coverage include every railway station?,demonstration-coverage
+F35,Is the RailConnect schedule based on fictional demo runs?,demonstration-coverage
+F36,Why are some dates missing from the demonstration timetable?,demonstration-coverage
+F37,Can an empty demo timetable result mean a date was not prepared?,demonstration-coverage
+F38,Which stations are represented in the demonstration data?,demonstration-coverage
+F39,Why aren't trains shown for every date on this site?,demonstration-coverage
+F40,Should I rely on these sample times to catch a real train?,demonstration-coverage
+F41,What is the fare for a reserved seat to Jaffna?,
+F42,Can you sell me a railway ticket for tomorrow?,
+F43,Which platform is the next train leaving from?,
+F44,How many seats are available in first class?,
+F45,Where is my train on the live GPS map?,
+F46,What is the official refund policy for a cancelled ticket?,
+F47,Is bicycle carriage allowed on the train?,
+F48,Can I bring my dog in the carriage?,
+F49,How much luggage may I bring in second class?,
+F50,Which train runs from Tokyo to Kyoto?,
+F51,Where can I search the live timetable for trains in Japan?,
+F52,Can you check alternative bus services from Kandy?,
+F53,How do I report a lost passport to the police?,
+F54,Can you report an internet disruption to my provider?,
+F55,Which staff member verified the delay and what are their private notes?,
+F56,What caused the latest train delay today?,
+F57,Does my rail ticket include travel insurance?,
+F58,Can you give me an exact estimate of the fare for my journey?,
+F59,What time does the ticket office open on Sunday?,
+F60,Can the demo timetable tell me the weather for my journey?,

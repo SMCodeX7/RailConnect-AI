@@ -156,3 +156,195 @@ def test_lookup_turn_requests_details_or_returns_unavailable(
         "answer": expected_text,
         "citations": [],
     }
+
+
+@pytest.mark.parametrize(
+    "turns",
+    [
+        pytest.param(
+            [
+                ({"question": "How do I report a disruption?"}, "report-disruption"),
+                ({"question": "Why is my submitted report pending?"}, "report-disruption"),
+            ],
+            id="report-then-pending-status",
+        ),
+        pytest.param(
+            [
+                ({"question": "How do I search for a direct journey?"}, "search-direct-journeys"),
+                (
+                    {"question": "How do I search for an overnight journey?"},
+                    "search-direct-journeys",
+                ),
+            ],
+            id="journey-search-then-overnight",
+        ),
+        pytest.param(
+            [
+                ({"question": "How do I refresh journey details?"}, "interpret-delay-estimates"),
+                ({"question": "What does estimated arrival mean?"}, "interpret-delay-estimates"),
+            ],
+            id="refresh-then-estimated-arrival",
+        ),
+        pytest.param(
+            [
+                ({"question": "How do I find direct alternatives?"}, "check-direct-alternatives"),
+                (
+                    {"question": "Does the demo timetable cover every route?"},
+                    "demonstration-coverage",
+                ),
+            ],
+            id="alternatives-then-coverage",
+        ),
+        pytest.param(
+            [
+                ({"question": "What is the ticket price?"}, "unavailable"),
+                ({"question": "Can I find a journey by station?"}, "search-direct-journeys"),
+            ],
+            id="fare-fallback-then-supported-search",
+        ),
+        pytest.param(
+            [
+                ({"question": "Is the demo timetable fictional?"}, "demonstration-coverage"),
+                ({"question": "Where is my train on the live GPS map?"}, "unavailable"),
+            ],
+            id="demo-coverage-then-live-location",
+        ),
+        pytest.param(
+            [
+                ({"question": "How do I submit a disruption report?"}, "report-disruption"),
+                (
+                    {"question": "Who verified the delay and where are their private notes?"},
+                    "unavailable",
+                ),
+            ],
+            id="public-guidance-then-private-notes",
+        ),
+        pytest.param(
+            [
+                ({"question": "Which platform does the train use?"}, "unavailable"),
+                ({"question": "Is bicycle carriage allowed?"}, "unavailable"),
+            ],
+            id="two-unsupported-requests",
+        ),
+        pytest.param(
+            [
+                ({"question": "Find a journey.", "lookup": {"kind": "journey"}}, "clarify"),
+                (
+                    {
+                        "question": "Depart from Jaffna.",
+                        "lookup": {"kind": "journey", "departure": "Jaffna"},
+                    },
+                    "clarify",
+                ),
+            ],
+            id="journey-incomplete-after-follow-up",
+        ),
+        pytest.param(
+            [
+                (
+                    {"question": "Look up an incident.", "lookup": {"kind": "incident"}},
+                    "clarify",
+                ),
+                (
+                    {
+                        "question": "Try this public incident ID.",
+                        "lookup": {
+                            "kind": "incident",
+                            "incident_id": "00000000-0000-0000-0000-000000000001",
+                        },
+                    },
+                    "unavailable",
+                ),
+            ],
+            id="incident-clarification-then-missing-record",
+        ),
+        pytest.param(
+            [
+                (
+                    {
+                        "question": "Check this route.",
+                        "lookup": {
+                            "kind": "journey",
+                            "departure": "Unknown fixture departure station",
+                            "arrival": "Colombo Fort",
+                            "travel_date": "2026-11-16",
+                        },
+                    },
+                    "clarify",
+                ),
+                ({"question": "How do I search by station name?"}, "search-direct-journeys"),
+            ],
+            id="unknown-station-then-guide",
+        ),
+        pytest.param(
+            [
+                (
+                    {
+                        "question": "Can you check an incident?",
+                        "lookup": {"kind": "incident"},
+                    },
+                    "clarify",
+                ),
+                ({"question": "How can I report a disruption?"}, "report-disruption"),
+                ({"question": "What does estimated arrival mean?"}, "interpret-delay-estimates"),
+            ],
+            id="incident-clarification-then-two-guide-topics",
+        ),
+        pytest.param(
+            [
+                ({"question": "Can I check direct alternatives?"}, "check-direct-alternatives"),
+                ({"question": "Can I check alternative bus routes?"}, "unavailable"),
+                ({"question": "Is the demo timetable fictional?"}, "demonstration-coverage"),
+            ],
+            id="rail-alternatives-then-bus-fallback",
+        ),
+        pytest.param(
+            [
+                ({"question": "What does estimated departure mean?"}, "interpret-delay-estimates"),
+                ({"question": "Can you estimate the fare for my journey?"}, "unavailable"),
+                ({"question": "How do I refresh journey results?"}, "interpret-delay-estimates"),
+            ],
+            id="estimates-then-fare-then-refresh",
+        ),
+        pytest.param(
+            [
+                ({"question": "Where can I search the live timetable?"}, "unavailable"),
+                (
+                    {"question": "Does the demo timetable cover the entire country?"},
+                    "demonstration-coverage",
+                ),
+                (
+                    {"question": "How do I search for a timetable journey?"},
+                    "search-direct-journeys",
+                ),
+            ],
+            id="live-fallback-then-demo-guidance",
+        ),
+    ],
+)
+def test_assistant_multi_turn_scenario(
+    assistant_client: TestClient,
+    turns: list[tuple[dict[str, object], str]],
+) -> None:
+    url = _create_conversation(assistant_client)
+    saved_turns: list[dict[str, object]] = []
+
+    for turn_number, (payload, expected) in enumerate(turns, start=1):
+        response = assistant_client.post(f"{url}/turns", headers=ORIGIN, json=payload)
+        assert response.status_code == 201, response.text
+        turn = response.json()
+        assert turn["turn_number"] == turn_number
+        assert turn["question"] == payload["question"]
+
+        answer = turn["answer"]
+        if expected in {"clarify", "unavailable"}:
+            assert answer["status"] == expected
+            assert answer["citations"] == []
+        else:
+            assert answer["status"] == "answered"
+            assert [citation["chunk_id"] for citation in answer["citations"]] == [expected]
+
+        saved_turns.append(turn)
+        history = assistant_client.get(url)
+        assert history.status_code == 200, history.text
+        assert history.json()["turns"] == saved_turns
