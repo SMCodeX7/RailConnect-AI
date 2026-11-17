@@ -86,11 +86,8 @@ export function JourneyStationPicker() {
   return (
     <section className="card" aria-labelledby="journey-heading">
       <h2 id="journey-heading">Find a direct journey</h2>
-      <p>Select your stations and boarding date.</p>
 
-      {status === 'loading' && (
-        <p role="status">Loading stations…</p>
-      )}
+      {status === 'loading' && <p role="status">Loading stations…</p>}
 
       {status === 'error' && (
         <div className="error">
@@ -105,8 +102,8 @@ export function JourneyStationPicker() {
         <p role="status">No stations are currently available.</p>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <div className="station-grid">
+      <form className="journey-search-form" onSubmit={handleSubmit}>
+        <div className="station-grid journey-search-fields">
           <StationSelect
             id="departure-station"
             label="Departure station"
@@ -126,30 +123,33 @@ export function JourneyStationPicker() {
             disabled={disabled}
             onChange={changeArrival}
           />
+
+          <div className="field travel-date-field">
+            <label htmlFor="travel-date">Travel date</label>
+            <input
+              id="travel-date"
+              type="date"
+              value={travelDate}
+              disabled={disabled}
+              required
+              onChange={(event) => changeDate(event.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="field travel-date-field">
-          <label htmlFor="travel-date">Travel date</label>
-          <input
-            id="travel-date"
-            type="date"
-            value={travelDate}
+        <div className="journey-search-deadline">
+          <ArrivalDeadlineFields
+            travelDate={travelDate}
+            arriveBefore={arriveBefore}
+            arrivalDate={arrivalDate}
             disabled={disabled}
-            required
-            onChange={(event) => changeDate(event.target.value)}
+            onTimeChange={changeDeadlineTime}
+            onDateChange={changeDeadlineDate}
           />
         </div>
 
-        <ArrivalDeadlineFields
-          travelDate={travelDate}
-          arriveBefore={arriveBefore}
-          arrivalDate={arrivalDate}
-          disabled={disabled}
-          onTimeChange={changeDeadlineTime}
-          onDateChange={changeDeadlineDate}
-        />
-
         <button
+          className="journey-search-submit"
           type="submit"
           disabled={!canSearch || journeys.status === 'loading'}
         >

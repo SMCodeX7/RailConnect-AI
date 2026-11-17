@@ -20,7 +20,7 @@ export function JourneyDisruptionNotice({
   const arrival = disruption.estimated_arrival_at
 
   return (
-    <div>
+    <div className="journey-delay-notice">
       <p>Verified delay affecting this segment.</p>
       <dl className="journey-details">
         {departure && (

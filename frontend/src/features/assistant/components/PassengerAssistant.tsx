@@ -178,12 +178,12 @@ export function PassengerAssistant() {
   }
 
   return (
-    <section className="card" aria-labelledby="assistant-heading">
+    <section className="card passenger-assistant" aria-labelledby="assistant-heading">
       <h2 id="assistant-heading">Passenger assistant</h2>
       <p>Ask about RailConnect or look up a demonstration journey or verified incident.</p>
 
       {conversationId && (
-        <div className="staff-actions">
+        <div className="assistant-actions">
           <button
             type="button"
             disabled={busy}
@@ -202,14 +202,14 @@ export function PassengerAssistant() {
 
       <div role="log" aria-label="Conversation history" aria-busy={busy}>
         {turns.length > 0 && (
-          <ol className="journey-list">
+          <ol className="assistant-turns">
             {turns.map((turn) => (
               <li key={turn.turn_number}>
-                <article className="journey-result">
+                <article className="assistant-turn">
                   <h3>{turn.question}</h3>
-                  <p style={{ whiteSpace: 'pre-wrap' }}>{turn.answer.answer}</p>
+                  <p className="assistant-answer">{turn.answer.answer}</p>
                   {turn.answer.citations.length > 0 && (
-                    <ul aria-label="Sources">
+                    <ul className="assistant-sources" aria-label="Sources">
                       {turn.answer.citations.map((citation) => (
                         <li key={'kind' in citation ? citation.href : citation.chunk_id}>
                           <Citation citation={citation} />
@@ -224,8 +224,8 @@ export function PassengerAssistant() {
         )}
       </div>
 
-      <form onSubmit={(event) => void submit(event)}>
-        <fieldset className="report-fields" disabled={busy || blocked}>
+      <form className="assistant-form" onSubmit={(event) => void submit(event)}>
+        <fieldset className="report-fields assistant-fields" disabled={busy || blocked}>
           <legend>Ask the assistant</legend>
 
           <div className="report-field">
