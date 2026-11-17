@@ -27,9 +27,10 @@ third-party source before reuse.
 - `stop_sequence` defines the order of stops.
 
 Operators prepare dated runs explicitly. On a fresh database, the
-2026-10-12 through 2026-10-18 baseline creates 70 runs and skips 14 nonoperating
-combinations. Repetition verifies existing runs. Scheduled times are stored
-in UTC and displayed in Asia/Colombo.
+2026-10-12 through 2026-10-18 baseline creates 70 runs and skips 14
+nonoperating combinations. Repetition verifies existing runs. Scheduled times
+are stored in UTC and displayed in Asia/Colombo. See [setup](setup.md) for
+the date used by the README demo and browser tests.
 
 ## Import and provenance
 
@@ -48,7 +49,16 @@ See [setup](setup.md#staff-timetable-import) and
 
 ## Incidents
 
-Synthetic reports and incidents are stored separately. Public incident
-responses expose approved facts and the schedule source reference. Private
-narrative, evidence, reasons and staff identities stay protected. Approved
-incidents currently leave journey results and scheduled timestamps unchanged.
+Synthetic reports and approved incidents are stored separately from the
+timetable. Pending and rejected reports are excluded from journey effects.
+
+An approved disruption can affect a journey when its scope and effective
+window apply to the dated run and selected segment. Delays can produce an
+estimated arrival alongside the scheduled arrival. Cancellations and
+restrictions can affect journey eligibility. The imported timetable retains
+its scheduled timestamps.
+
+Public incident responses expose approved facts and the schedule source
+reference. Private narrative, evidence, reasons and staff identities stay
+protected. The schedule source reference identifies the timetable used by
+the run.

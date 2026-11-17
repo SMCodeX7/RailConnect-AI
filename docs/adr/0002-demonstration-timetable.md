@@ -4,6 +4,11 @@
 
 Accepted.
 
+This ADR defines the recurring timetable and direct-journey rules.
+[ADR 0004](0004-dated-runs-and-timetable-provenance.md) extends this design
+with prepared dated runs, ordered stop identities, and timetable provenance.
+Public journey search reads the prepared runs.
+
 ## Context
 
 The pilot needs searchable train journeys using clearly labelled
@@ -22,7 +27,7 @@ Create a timetable module with two tables:
   and arrival and departure offsets.
 
 Store offsets as minutes from midnight on the service's starting date.
-Values above 1440 represent times on subsequent days.
+Offsets of 1440 or more represent times on subsequent days.
 
 Use Asia/Colombo when converting schedules into journey timestamps.
 

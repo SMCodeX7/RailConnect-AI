@@ -36,101 +36,107 @@ export function JourneyResults({
 
   return (
     <section
-      className="journey-results"
+      className={
+        details.status === 'idle'
+          ? 'journey-results'
+          : 'journey-results journey-results--with-detail'
+      }
       aria-labelledby="journey-results-heading"
     >
-      <h3 id="journey-results-heading">Journey results</h3>
+      <div className="journey-results-list-panel">
+        <h3 id="journey-results-heading">Journey results</h3>
 
-      <button type="button" onClick={() => changePage(0)}>
-        Refresh journey results
-      </button>
+        <button type="button" onClick={() => changePage(0)}>
+          Refresh journey results
+        </button>
 
-      {result.total === 0 ? (
-        <p role="status">
-          No direct services found for the selected stations, date and filters.
-          Try another date, station pair or arrival deadline.
-        </p>
-      ) : result.items.length === 0 ? (
-        <p role="status">No journeys on this page. Return to the previous page.</p>
-      ) : (
-        <p role="status">
-          Showing {result.offset + 1}–{result.offset + result.items.length}
-          {' '}of {result.total} journeys.
-        </p>
-      )}
-
-      {result.items.length > 0 && (
-        <>
-          <p className="muted">
-            Fictional demonstration schedules. All times are in Sri Lanka
-            time (Asia/Colombo).
+        {result.total === 0 ? (
+          <p role="status">
+            No direct services found for the selected stations, date and filters.
+            Try another date, station pair or arrival deadline.
           </p>
+        ) : result.items.length === 0 ? (
+          <p role="status">No journeys on this page. Return to the previous page.</p>
+        ) : (
+          <p role="status">
+            Showing {result.offset + 1}–{result.offset + result.items.length}
+            {' '}of {result.total} journeys.
+          </p>
+        )}
 
-          <ul className="journey-list">
-            {result.items.map((journey) => (
-              <li
-                key={`${journey.run_id}:${journey.service_id}:${journey.departure_stop_sequence}:${journey.arrival_stop_sequence}`}
-              >
-                <article className="journey-result">
-                  <h4>{journey.service_name}</h4>
+        {result.items.length > 0 && (
+          <>
+            <p className="muted">
+              Fictional demonstration schedules. All times are in Sri Lanka
+              time (Asia/Colombo).
+            </p>
 
-                  <p>
-                    {journey.departure_station.name} to{' '}
-                    {journey.arrival_station.name}
-                  </p>
-                  <p className="muted">
-                    Service date: {journey.service_date}.
-                    {' '}Status: {journey.run_status}.
-                  </p>
+            <ul className="journey-list">
+              {result.items.map((journey) => (
+                <li
+                  key={`${journey.run_id}:${journey.service_id}:${journey.departure_stop_sequence}:${journey.arrival_stop_sequence}`}
+                >
+                  <article className="journey-result">
+                    <h4>{journey.service_name}</h4>
 
-                  {journey.run_status === 'restricted' && (
                     <p>
-                      Restrictions apply. Review the details before choosing
-                      this journey.
+                      {journey.departure_station.name} to{' '}
+                      {journey.arrival_station.name}
                     </p>
-                  )}
+                    <p className="muted">
+                      Service date: {journey.service_date}.
+                      {' '}Status: {journey.run_status}.
+                    </p>
 
-                  <dl className="journey-details">
-                    <div>
-                      <dt>Scheduled departure</dt>
-                      <dd>
-                        <time dateTime={journey.departure_at}>
-                          {formatJourneyTimestamp(journey.departure_at)}
-                        </time>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Scheduled arrival</dt>
-                      <dd>
-                        <time dateTime={journey.arrival_at}>
-                          {formatJourneyTimestamp(journey.arrival_at)}
-                        </time>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Scheduled duration</dt>
-                      <dd>{formatDuration(journey.duration_minutes)}</dd>
-                    </div>
-                  </dl>
+                    {journey.run_status === 'restricted' && (
+                      <p>
+                        Restrictions apply. Review the details before choosing
+                        this journey.
+                      </p>
+                    )}
 
-                  <JourneyDisruptionNotice disruption={journey.disruption} />
+                    <dl className="journey-details">
+                      <div>
+                        <dt>Scheduled departure</dt>
+                        <dd>
+                          <time dateTime={journey.departure_at}>
+                            {formatJourneyTimestamp(journey.departure_at)}
+                          </time>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Scheduled arrival</dt>
+                        <dd>
+                          <time dateTime={journey.arrival_at}>
+                            {formatJourneyTimestamp(journey.arrival_at)}
+                          </time>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Scheduled duration</dt>
+                        <dd>{formatDuration(journey.duration_minutes)}</dd>
+                      </div>
+                    </dl>
 
-                  <button
-                    type="button"
-                    aria-label={`View journey details for ${journey.service_name}`}
-                    onClick={(event) => {
-                      triggerRef.current = event.currentTarget
-                      void details.load(journey)
-                    }}
-                  >
-                    View journey details
-                  </button>
-                </article>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+                    <JourneyDisruptionNotice disruption={journey.disruption} />
+
+                    <button
+                      type="button"
+                      aria-label={`View journey details for ${journey.service_name}`}
+                      onClick={(event) => {
+                        triggerRef.current = event.currentTarget
+                        void details.load(journey)
+                      }}
+                    >
+                      View journey details
+                    </button>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
 
       {details.status !== 'idle' && (
         <JourneyDetailPanel

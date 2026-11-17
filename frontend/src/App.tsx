@@ -4,60 +4,51 @@ import { PassengerAssistant } from './features/assistant/components/PassengerAss
 import { StaffPanel } from './features/auth/components/StaffPanel'
 import { PassengerReportForm } from './features/incidents/components/PassengerReportForm'
 import { JourneyStationPicker } from './features/journeys/components/JourneyStationPicker'
+import './release.css'
 
-type Page = 'journeys' | 'assistant' | 'report' | 'staff'
+const navigation = [
+  { page: 'journeys', label: 'Journey search' },
+  { page: 'assistant', label: 'Passenger assistant' },
+  { page: 'report', label: 'Report a disruption' },
+  { page: 'staff', label: 'Staff access' },
+] as const
+
+type Page = (typeof navigation)[number]['page']
 
 export default function App() {
   const [page, setPage] = useState<Page>('journeys')
 
   return (
-    <main className="app-shell">
-      <header className="page-header">
-        <span className="badge">Portfolio pilot</span>
-        <h1>RailConnect AI</h1>
-        <p>A clearer way to plan railway journeys across Sri Lanka.</p>
+    <>
+      <header className="app-masthead">
+        <div className="app-masthead-inner">
+          <h1 className="app-wordmark">RailConnect AI</h1>
+
+          <nav className="app-navigation" aria-label="Application sections">
+            {navigation.map((item) => (
+              <button
+                key={item.page}
+                type="button"
+                aria-pressed={page === item.page}
+                onClick={() => setPage(item.page)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
       </header>
 
-      <aside className="demo-notice">
-        Demonstration data: selected stations are included for this pilot.
-        Live timetables and service updates are not available yet.
-      </aside>
+      <p className="app-data-notice">
+        Demonstration data for selected Sri Lankan stations. Live updates are unavailable.
+      </p>
 
-      <nav className="app-navigation" aria-label="Application sections">
-        <button
-          type="button"
-          aria-pressed={page === 'journeys'}
-          onClick={() => setPage('journeys')}
-        >
-          Journey search
-        </button>
-        <button
-          type="button"
-          aria-pressed={page === 'assistant'}
-          onClick={() => setPage('assistant')}
-        >
-          Passenger assistant
-        </button>
-        <button
-          type="button"
-          aria-pressed={page === 'report'}
-          onClick={() => setPage('report')}
-        >
-          Report a disruption
-        </button>
-        <button
-          type="button"
-          aria-pressed={page === 'staff'}
-          onClick={() => setPage('staff')}
-        >
-          Staff access
-        </button>
-      </nav>
-
-      {page === 'journeys' && <JourneyStationPicker />}
-      {page === 'assistant' && <PassengerAssistant />}
-      {page === 'report' && <PassengerReportForm />}
-      {page === 'staff' && <StaffPanel />}
-    </main>
+      <main className="app-shell">
+        {page === 'journeys' && <JourneyStationPicker />}
+        {page === 'assistant' && <PassengerAssistant />}
+        {page === 'report' && <PassengerReportForm />}
+        {page === 'staff' && <StaffPanel />}
+      </main>
+    </>
   )
 }
