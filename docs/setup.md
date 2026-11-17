@@ -63,21 +63,27 @@ python scripts/materialize_demo_runs.py --start-date 2026-10-12 --end-date 2026-
 
 For a first-time staff import on a fresh database, seed the stations, import
 through the staff panel, then materialise dated runs. Prepare the intended
-search dates explicitly, up to 31 days per invocation. See the [data card](data-card.md).
+search dates explicitly, up to 31 days per invocation. For the README demo
+and Playwright, also prepare 16 November 2026 as shown under
+[Browser tests](#browser-tests). See the [data card](data-card.md).
 
 ## Run the app
 
-In the backend terminal, from the repository root:
+In the backend terminal, from the repository root on Windows:
 
 ```powershell
 .\backend\.venv\Scripts\Activate.ps1
 python -m uvicorn railconnect.app:create_app --factory --reload --reload-dir backend/src --host 127.0.0.1 --port 8000
 ```
 
-Check [backend readiness](http://127.0.0.1:8000/health/ready). In a second terminal:
+On Linux or macOS, activate the backend environment with
+`source backend/.venv/bin/activate` and run the same Uvicorn command.
+
+Check [backend readiness](http://127.0.0.1:8000/health/ready). In a second
+terminal, from the repository root:
 
 ```powershell
-Set-Location frontend
+cd frontend
 npm ci
 npm run dev
 ```
@@ -88,7 +94,8 @@ terminals running and open [RailConnect](http://127.0.0.1:5173). Vite proxies
 
 ## Staff access
 
-Provision staff accounts from the repository root:
+Provision staff accounts from the repository root with the backend
+environment active:
 
 ```powershell
 python scripts/provision_staff.py --username local_controller --display-name "Local Controller" --role controller
@@ -177,6 +184,45 @@ npm run lint
 npm run build
 npm test
 ```
+
+### Browser tests
+
+Use a local demonstration database. The staff test submits a synthetic report
+and verifies a demo delay, so the test writes to the database.
+
+After seeding the stations and timetable, prepare the date used by the tests.
+Run this from the repository root with the backend environment active:
+
+```powershell
+python scripts/materialize_demo_runs.py --start-date 2026-11-16 --end-date 2026-11-16
+```
+
+Keep the backend and frontend running on `127.0.0.1:8000` and
+`127.0.0.1:5173`. Playwright uses the installed Google Chrome browser. Use a
+local staff account with the `controller` role. See [Staff access](#staff-access)
+for provisioning.
+
+From `frontend`, run this in PowerShell. Replace `local_controller` with your
+provisioned username if it differs. Enter the account password at the prompt.
+
+```powershell
+$env:RAILCONNECT_E2E_CONTROLLER = 'local_controller'
+$controllerPassword = Read-Host 'Local controller password' -AsSecureString
+
+try {
+    $env:RAILCONNECT_E2E_PASSWORD = [pscredential]::new(
+        $env:RAILCONNECT_E2E_CONTROLLER, $controllerPassword
+    ).GetNetworkCredential().Password
+
+    npm run test:e2e
+} finally {
+    Remove-Item Env:RAILCONNECT_E2E_PASSWORD, Env:RAILCONNECT_E2E_CONTROLLER -ErrorAction SilentlyContinue
+    Remove-Variable controllerPassword
+}
+```
+
+Expect four tests covering journey details, assistant history and guest
+isolation, keyboard and narrow-screen navigation, and staff delay verification.
 
 For dependency changes, commit the changed manifest and lockfile together.
 In GitHub Actions, verify both CI jobs against the pushed commit.

@@ -3,25 +3,21 @@
 ## Baseline
 
 The Complete Project and Development Handbook, document version 1.0,
-defines release requirements.
-
-This checklist tracks implementation and validation.
-Local tests do not establish deployment or release completion.
+defines the release requirements. This roadmap tracks implementation,
+local validation, and deployment verification.
 
 ## Current checkpoint
 
-- Updated: 2026-10-18.
-- Release target: v1.0 portfolio pilot.
-- Branch: feat/incident-reporting.
-- Foundation, journeys and staff identity merged into main.
-- Incident-reporting stages 1–6 complete and pushed through c36ae1a.
-- Stage 6 manual workflow verification passed.
-- Complete backend suite: 585 passed without skips.
-- Complete frontend suite: 122 passed.
-- Four repeatable synthetic API scenario cases passed.
-- Stage 7 documentation, final branch review and CI verification in progress.
-- Incident-reporting work has not been merged into main.
-- Checkbox confirmation layout remains deferred.
+- Updated 2026-11-17.
+- Release target is the v1.0 portfolio pilot.
+- Active branch is `feat/pilot-release`. UI polish is committed as `aeff9b0`.
+- `main` includes incident reporting, timetable management, disruption effects,
+  the passenger assistant, and pilot validation.
+- Latest local validation passed 653 backend tests, 135 frontend tests, and
+  four Playwright tests. Frontend lint and build passed. Alembic detected
+  no new upgrade operations.
+- Release-candidate CI, clean-checkout verification, and deployment checks
+  are pending. See [project progress](progress.md).
 
 ## Foundation
 
@@ -56,13 +52,12 @@ Local tests do not establish deployment or release completion.
 - [x] Source/version and freshness wording.
 - [x] Timetable units and API naming decisions.
 - [x] Constraints and materialization regression tests.
-- [ ] Authenticated import preview and commit.
-- [ ] Staff actor attribution for imports.
-- [ ] Protected timetable management interface.
+- [x] Authenticated import preview and commit.
+- [x] Staff actor attribution for imports.
+- [x] Protected timetable management interface.
 
-Schedules are fictional.
-Search depends on prepared dated runs.
-Source registration time does not establish operational freshness.
+Schedules are fictional. Search depends on prepared dated runs. Source
+registration time records when data was registered. Live updates are unavailable.
 
 ## v1 staff identity
 
@@ -83,7 +78,6 @@ Source registration time does not establish operational freshness.
 - [ ] Cleanup scheduling or operational procedure during deployment.
 - [ ] Authorization connected to remaining management workflows.
 
-Visible permission labels do not implement management actions.
 Authorization is enforced on the server.
 
 ## v1 reports and incidents
@@ -120,17 +114,15 @@ Authorization is enforced on the server.
 - [x] New approved revisions for amendments.
 - [x] Resolution actor, reason and effective time.
 - [x] Preserved revision history after resolution.
-- [x] No further mutation of resolved incidents.
+- [x] Resolved incidents are read-only.
 - [x] Origin and CSRF protection.
 - [x] Audit failures roll back business changes.
 - [x] Verification/rejection concurrency.
 - [x] Amendment/amendment concurrency.
 - [x] Amendment/resolution concurrency.
 - [x] Resolution/resolution concurrency.
-- [x] Protected audit history requiring audit.read.
+- [x] Protected audit history requiring `audit.read`.
 - [x] Audit pagination, allowlists and permission tests.
-
-No reopening workflow is implemented.
 
 ### Public responses and interfaces
 
@@ -154,76 +146,68 @@ No reopening workflow is implemented.
 - [x] Manual rejection and audit verification.
 - [x] Signed-out public-response verification.
 - [x] Repeatable isolated API lifecycle/rejection scenarios.
-- [ ] Final documentation changes committed and pushed.
-- [ ] GitHub CI verified for the final branch commit.
-- [ ] Branch review and separately authorized merge.
 
-Active lifecycle state does not establish current journey applicability.
-Run listings include approved active and resolved incidents.
-
-Verified incident records do not yet alter journey calculations.
+Run listings include approved active and resolved incidents. Journey effects
+depend on the applicable run, segment, and effective time. Scheduled timestamps
+remain visible alongside estimates.
 
 ### Branch stages
 
-- [x] Stage 1: models, migrations and constraints.
-- [x] Stage 2: passenger API, limits and cleanup.
-- [x] Stage 3: protected queue and report decisions.
-- [x] Stage 4: lifecycle and audit history.
-- [x] Stage 5: public incident responses.
-- [x] Stage 6: passenger/staff interfaces and manual verification.
-- [ ] Stage 7: final integration, documentation and CI verification.
-
-Approximate branch completion: 95%.
-This is not overall v1 completion.
-
-Pushes update feat/incident-reporting only.
-A merge into main is a separate action.
+- [x] Stage 1 — Models, migrations and constraints.
+- [x] Stage 2 — Passenger API, limits and cleanup.
+- [x] Stage 3 — Protected queue and report decisions.
+- [x] Stage 4 — Lifecycle and audit history.
+- [x] Stage 5 — Public incident responses.
+- [x] Stage 6 — Passenger/staff interfaces and manual verification.
+- [ ] Stage 7 — Confirm final incident-branch documentation and CI evidence.
+- [x] Incident-reporting branch merged into `main`.
 
 ## v1 disruptions and alternatives
 
-- [ ] Match effects to dated runs and ordered segments.
+- [x] Match effects to dated runs and ordered segments.
 - [ ] Apply effective-time boundaries.
-- [ ] Preserve scheduled timestamps.
+- [x] Preserve scheduled timestamps.
 - [ ] Represent estimated timestamps and their basis separately.
 - [ ] Propagate approved downstream delays.
 - [ ] Handle cancellation and restriction eligibility.
 - [ ] Document overlapping-effect rules.
 - [ ] Return feasible known alternatives with explanations.
-- [ ] Handle no available alternative explicitly.
+- [x] Handle no available alternative explicitly.
 - [ ] Test unrelated incidents, resolution and overnight boundaries.
-- [ ] Refresh affected journey views after operational changes.
+- [x] Refresh affected journey views after operational changes.
 
-Unverified claims must not affect operational journey results.
-Do not blindly add overlapping reported delays.
+Only approved, applicable effects can change journey estimates or
+eligibility. Review the overlapping-effect rules before closing that
+checklist item.
 
 ## v1 passenger assistant
 
 - [ ] Approved versioned policy documents and sources.
-- [ ] Lexical retrieval and stable chunk references.
+- [x] Lexical retrieval and stable chunk references.
 - [ ] Authorized journey, incident and policy tools.
 - [ ] Entity resolution and ambiguity clarification.
 - [ ] Bounded calls, response sizes and deadlines.
-- [ ] Persisted conversations with server-issued guest ownership.
-- [ ] Ownership checks before reading/continuing conversations.
+- [x] Persisted conversations with server-issued guest ownership.
+- [x] Ownership checks before reading/continuing conversations.
 - [ ] Structured answers, citations, freshness and warnings.
-- [ ] Deterministic evidence-based fallback.
-- [ ] Assistant interface with citations and failure states.
+- [x] Deterministic evidence-based fallback.
+- [x] Assistant interface with citations and failure states.
 - [ ] Optional model adapter with timeout and evidence validation.
 
 Distinguish approved evidence, fictional examples and unavailable information.
 
 ## v1 evaluation and release
 
-- [ ] At least 60 independent English evaluation cases.
-- [ ] At least 15 multi-turn scenarios.
-- [ ] Separate tuning and final evaluation examples.
+- [x] At least 60 independent English evaluation cases.
+- [x] At least 15 multi-turn scenarios.
+- [x] Separate tuning and final evaluation examples.
 - [ ] Retrieval, faithfulness, ambiguity and coverage results.
 - [ ] No unsupported critical operational claims in the release set.
-- [ ] Browser automation for search, review and affected-journey refresh.
-- [ ] Negative authorization and conversation ownership tests.
+- [x] Browser automation for search, review and affected-journey refresh.
+- [x] Negative authorization and conversation ownership tests.
 - [ ] Complete the demonstration twice from reset fixtures.
 - [ ] Responsive and accessible passenger/staff interfaces.
-- [ ] Correct checkbox confirmation layout.
+- [x] Correct checkbox confirmation layout.
 - [ ] Deployment build files and HTTPS.
 - [ ] Trusted origin and proxy configuration.
 - [ ] Cleanup operational procedures.
@@ -231,95 +215,61 @@ Distinguish approved evidence, fictional examples and unavailable information.
 - [ ] Backup and separate-environment restore verification.
 - [ ] Setup, architecture, evaluation and operations documentation.
 - [ ] README, screenshots and demonstration video.
+- [ ] Final release documentation committed and pushed.
+- [ ] GitHub CI verified for the pushed release candidate.
+- [ ] Release branch reviewed and merged.
 - [ ] Deployed commit recorded and v1.0.0 tagged after release gates pass.
 
-Repeated isolated API tests do not replace browser automation or
-the two release demonstrations from reset fixtures.
+The independent assistant evaluation passed 51 of 60 cases. It declined
+all 20 unsupported questions and returned a fallback for nine supported
+questions. See the [evaluation results](../evaluation/assistant/README.md).
 
 ## Validation checkpoints
 
-Current:
-
-- Backend: 585 passed without skips.
-- Frontend: 122 passed across 16 files.
-- Latest full backend lint/formatting passed.
-- Backend formatting checkpoint: 168 files.
-- mypy checkpoint: 112 source files.
-- Alembic check passed; head af88e86de607.
-- New scenario-test lint/formatting passed.
-- Four repeatable API cases passed.
-- Full backend suite passed after adding those cases.
-- Frontend lint and production build passed.
-- Stage 6 manual workflow passed.
-- Git whitespace check passed before final documentation changes.
-- Final branch CI remains unverified.
+See [project progress](progress.md#local-validation) for the latest results.
 
 Historical:
 
-- Foundation: 41 backend and 5 frontend tests.
-- Journey-details: 184 backend and 33 frontend tests.
-- Staff identity: 310 backend and 62 frontend tests.
-- Incident stages 1–2: 431 backend tests.
-- Incident Stage 3: 512 backend tests.
-- Incident Stage 4: 566 backend tests.
-- Incident Stage 5: 581 backend tests.
+- Foundation — 41 backend and 5 frontend tests.
+- Journey details — 184 backend and 33 frontend tests.
+- Staff identity — 310 backend and 62 frontend tests.
+- Incident stages 1–2 — 431 backend tests.
+- Incident stage 3 — 512 backend tests.
+- Incident stage 4 — 566 backend tests.
+- Incident stage 5 — 581 backend tests.
+- Incident reporting checkpoint — 585 backend and 122 frontend tests.
+- Timetable management checkpoint — 603 backend and 128 frontend tests.
 
-Focused counts are subsets of the complete suites.
-
-Concurrency fixtures use independent transactions in temporary metadata
-schemas. Migration-installed history triggers are tested separately.
+Focused counts are subsets of the complete suites. Concurrency fixtures use
+independent transactions in temporary metadata schemas. Migration-installed
+history triggers are tested separately.
 
 ## Known limitations
 
 - Fictional schedules and incident scenarios.
 - Explicit preparation required for journey dates.
-- Protected timetable imports and actor attribution not implemented.
-- Incident effects not connected to journey calculations.
+- Some supported assistant questions return a fallback.
 - UUID-based incident/report lookup in staff forms.
-- No incident reopening.
-- No self-service password recovery.
-- No person-level identity guarantee for anonymous reports.
-- Manual audit refresh rather than live notifications.
-- Checkbox layout correction deferred to UI review.
-- Deployment and full release verification outstanding.
+- Incident reopening and self-service password recovery are unavailable.
+- Anonymous reports lack person-level identity verification.
+- Audit updates require a manual refresh.
+- Deployment and full release verification are outstanding.
 
 ## Remaining feature branches
 
-1. feat/incident-reporting — finalization in progress.
-2. feat/timetable-management.
-3. feat/disruption-effects.
-4. feat/passenger-assistant.
-5. feat/pilot-validation.
-6. feat/pilot-release.
-
-Split branches where useful for review.
-Branch organization does not reduce handbook requirements.
+`feat/pilot-release` is the final planned v1 feature branch. The handbook
+requirements apply to the full release.
 
 ## Later versions
 
-v1.1:
-Passenger accounts, saved journeys, subscriptions, notifications
-and further usability/recovery improvements.
-
-v2:
-Multilingual evaluation and booking sandbox.
-
-v3:
-Observed-data delay intelligence or explicitly labelled simulation.
-
-v4:
-Maintenance and expanded operations workflows.
-
-v5:
-Conditional integrations, scaling and operational readiness.
+- **v1.1** — Passenger accounts, saved journeys, subscriptions, notifications,
+  and further usability and recovery improvements.
+- **v2** — Multilingual evaluation and booking sandbox.
+- **v3** — Observed-data delay intelligence or explicitly labelled simulation.
+- **v4** — Maintenance and expanded operations workflows.
+- **v5** — Conditional integrations, scaling and operational readiness.
 
 ## Next task
 
-Finish Stage 7 documentation and final Git review.
-Push the final feat/incident-reporting commit and verify both CI jobs.
-
-Prepare a pull request when branch verification is complete.
-Merge into main only as a separate authorized action.
-
-After the branch is merged and main is synchronized, continue with
-authenticated timetable management.
+Finish the release documentation, verify the release candidate from a
+clean checkout, and check CI against the pushed commit.

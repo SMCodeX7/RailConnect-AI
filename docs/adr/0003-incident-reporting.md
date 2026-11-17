@@ -163,17 +163,16 @@ Segment endpoints must belong to the approved run.
 Delay requires an explicit integer estimate from 1 to 1440 minutes
 and a stated evidence basis.
 
-This is a pilot validation bound, not a railway prediction.
+The range bounds staff-entered delay estimates for the pilot.
 Do not infer an approved delay from unverified narrative.
 
 Require aware effective timestamps with end after start.
-Normalize storage to UTC; display passenger times in Asia/Colombo.
+Normalize storage to UTC and display passenger times in Asia/Colombo.
 
-The intended effect interval is:
-
-effective_from <= timestamp < effective_until
-
-Actual matching and journey effects belong to the disruption feature.
+The effect window includes `effective_from` and excludes `effective_until`.
+Journey applicability uses overlap with scheduled legs of the approved run
+and, for segment-scoped effects, the approved stop range. See
+[Journey integration](#journey-integration).
 
 ## Amendments
 
@@ -216,8 +215,9 @@ Resolution increments incident version without replacing the revision.
 
 Preserve previous facts and audit history.
 
-The disruption feature must later end applicable effects at the effective
-resolution time. Recording resolution does not implement that calculation.
+Journey calculations use the earlier of the approved effective end and
+the effective resolution time as the effect cutoff. Scheduled legs that
+overlap the resulting window can contribute to historical journey effects.
 
 ## Transactions
 
@@ -268,8 +268,7 @@ Pending reports may have empty history.
 Missing reports return 404.
 
 Order by occurrence time and event ID.
-Event ID breaks ties for pagination; it is not causal ordering
-when timestamps are equal.
+Event ID breaks pagination ties when timestamps are equal.
 
 Default limit/offset are 20/0.
 Bounds are limit 1–100 and offset 0–10000.
@@ -309,11 +308,11 @@ They include approved active and resolved incidents.
 Unknown runs return an empty list.
 Missing incident details return 404.
 
-Active lifecycle state alone does not establish current applicability.
-Effective intervals and resolution must be considered by the disruption feature.
+Journey applicability depends on the approved run and scope, scheduled leg
+times, and the effective window after applying any resolution cutoff.
 
-The timetable source reference identifies schedule provenance.
-It is not proof of an incident or a live railway update.
+The timetable source reference identifies the schedule used by the run.
+Evidence for the incident is recorded separately.
 
 Successful public reads use Cache-Control: no-store.
 
@@ -350,21 +349,21 @@ Audit history is visible only to permitted staff and loads on request.
 
 ## Journey integration
 
-Preserve original scheduled timestamps.
+Journey search and details use approved effects from the current incident
+revision. Pending and rejected reports are excluded.
 
-Represent future estimated timestamps separately with evidence references.
-
-The disruption feature must handle:
-
-- Dated-run and segment matching.
-- Effective-time and resolution boundaries.
-- Downstream delays.
-- Cancellation and restriction eligibility.
-- Overlapping-effect rules.
-- Feasible alternatives.
-- Affected-journey refresh.
-
-At this checkpoint, reports and verified incidents do not change journey results.
+- Effects match the dated run, approved stop range, and scheduled leg times.
+- Scheduled timestamps are retained. Estimated times and the associated
+  incident and revision references are returned separately when applicable.
+- Applicable delays propagate downstream. The estimate uses the largest
+  applicable delay encountered along the run up to the relevant stop.
+- Cancellation and restriction are evaluated for the selected passenger
+  segment. Estimated times are omitted when the segment is blocked.
+- Direct alternatives use prepared services for the same station pair and
+  boarding date. They exclude the original run, depart at or after its
+  scheduled boarding time, and respect the requested arrival deadline.
+  The response explains when no prepared alternative qualifies.
+- Passengers can refresh journey results or details after a staff decision.
 
 ## Validation
 
@@ -388,28 +387,21 @@ Validated behavior includes:
 - Full lifecycle and rejection API scenarios, each repeated twice.
 - Unchanged scheduled run-stop timestamps across lifecycle changes.
 
-Remaining release/disruption validation includes browser automation,
-journey impact boundaries, affected-journey refresh, responsive/accessibility
-review and two release demonstrations from reset fixtures.
+The Playwright suite covers controller verification of a synthetic delay
+and refresh of the existing passenger journey. The broader accessibility
+review and two release demonstrations from reset fixtures remain open.
+See the [workflow verification guide](../incident-workflow-check.md).
 
 ## Implementation checkpoint
 
-As of 2026-10-18:
-
-- Incident-reporting stages 1–6 implemented and pushed through c36ae1a.
-- Stage 6 browser workflow manually verified.
-- Backend: 585 tests passed without skips.
-- Frontend: 122 tests passed.
-- Four repeatable complete API scenario cases passed.
-- Stage 7 finalization and branch CI verification remain in progress.
-- Checkbox confirmation layout is deferred.
-- Journey impact integration remains for the disruption feature.
-- No incident-reporting merge into main has been performed.
+As of 2026-11-17, incident reporting, lifecycle management, audit history,
+and approved journey effects are merged into `main`. The pilot-release
+branch passed 653 backend tests, 135 frontend tests, and four Playwright
+tests locally.
 
 Concurrency fixtures use temporary schemas built from metadata.
-Migration-installed triggers are tested separately.
-
-Repeated API fixtures are not browser automation or release reset-fixture runs.
+Migration-installed history triggers are tested separately. See
+[project progress](../progress.md) for the remaining release checks.
 
 ## Consequences
 

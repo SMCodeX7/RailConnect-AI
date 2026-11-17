@@ -13,6 +13,7 @@ journey, incident, booking, and maintenance features.
 ## Decision
 
 Use:
+
 - FastAPI with Python for the backend.
 - React with TypeScript for the frontend.
 - PostgreSQL for persistent data.
@@ -39,11 +40,13 @@ Models cannot independently approve incidents or confirm bookings.
 ## Consequences
 
 Benefits:
+
 - Simple local development and deployment.
 - Clear code ownership and responsibilities.
 - Critical workflows can use database transactions.
 
 Tradeoffs:
+
 - Backend modules deploy together.
 - Module boundaries must be maintained during development.
 

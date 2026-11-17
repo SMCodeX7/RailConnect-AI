@@ -45,5 +45,7 @@ no staff attribution. Both CLI and API hash the original dataset bytes.
 ## Consequences
 
 Operators prepare coverage dates after importing recurring definitions.
-Stable run identities support incident references. Scheduled timestamps remain
-separate from future estimates.
+Stable run identities support incident references. Journey responses retain
+scheduled timestamps and expose applicable disruption estimates separately.
+See the [incident decision](0003-incident-reporting.md#journey-integration)
+for the effect matching and estimation rules.

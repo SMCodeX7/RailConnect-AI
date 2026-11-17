@@ -119,8 +119,9 @@ Recheck authorization in application services used outside HTTP routes.
 
 Role removal and account disabling must affect subsequent requests.
 
-Permission-specific report, incident, import and audit workflows are
-implemented in subsequent feature branches.
+Reporting, incident review and lifecycle changes, timetable import, and audit
+history use the permission mappings above. Protected operations enforce
+their required permissions on the server.
 
 ## API
 
@@ -145,8 +146,8 @@ The frontend also disables caching for API requests.
 
 ## Transaction boundaries
 
-Keep identity queries and mutations separate from future incident
-or import transactions.
+Keep identity queries and mutations separate from incident and timetable
+import transactions.
 
 Use a dedicated identity database dependency.
 Do not introduce nested transaction assumptions into the existing
@@ -227,9 +228,6 @@ Ignore responses belonging to cancelled or superseded requests.
 
 Frontend navigation and permission displays are convenience features.
 Every protected management action still requires backend authorization.
-
-Displaying permissions does not implement the corresponding
-incident, import or audit workflows.
 
 ## Validation
 
